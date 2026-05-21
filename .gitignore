@@ -1,0 +1,10 @@
+node_modules/
+dist/
+*.log
+_video_frames/
+video_frames/
+video_frames2/
+figma-*.png
+figma-*.svg
+icon-left.png
+icon-right.png

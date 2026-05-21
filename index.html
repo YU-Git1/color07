@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>色阶生成工具</title>
+    <link id="appFavicon" rel="icon" type="image/png" href="./icon-light.png?v=20260520-2" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500&family=Noto+Serif+SC:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-theme="light">
+    <div class="app-shell">
+      <main class="layout">
+        <header class="hero-card">
+          <div class="hero-copy">
+            <span class="hero-mark" aria-hidden="true">
+              <img class="hero-mark-image hero-mark-image-light" src="./hero-mark-light.png" alt="" />
+              <img class="hero-mark-image hero-mark-image-dark" src="./hero-mark-dark.png" alt="" />
+            </span>
+            <div class="hero-copy-text">
+              <h1>色阶</h1>
+              <p>任意节点替换，整条色阶自动重算</p>
+            </div>
+          </div>
+
+          <section class="toolbar" aria-label="色阶设置">
+            <label class="toolbar-pill toolbar-select toolbar-select-anchor">
+              <span class="toolbar-label">色阶基准</span>
+              <span class="toolbar-divider" aria-hidden="true"></span>
+              <span class="toolbar-select-value">
+                <select id="anchorSelect" aria-label="选择参考色所在位置"></select>
+                <svg class="toolbar-chevron" viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M4 6.5L8 10.5L12 6.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.3" />
+                </svg>
+              </span>
+            </label>
+
+            <div class="toolbar-pill toolbar-select toolbar-select-count">
+              <span class="toolbar-label">数量</span>
+              <span class="toolbar-divider" aria-hidden="true"></span>
+              <div class="toolbar-stepper-panel">
+                <div class="toolbar-stepper-value" id="countValue" aria-live="polite">10</div>
+                <div class="toolbar-stepper-controls" role="group" aria-label="调整色阶数量">
+                  <button type="button" class="toolbar-stepper-btn" id="countIncreaseBtn" aria-label="增加色阶数量" data-tooltip="增加色阶数量">
+                    <svg viewBox="0 0 16 16" aria-hidden="true">
+                      <path d="M4 9.5L8 5.5L12 9.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.3" />
+                    </svg>
+                  </button>
+                  <button type="button" class="toolbar-stepper-btn" id="countDecreaseBtn" aria-label="减少色阶数量" data-tooltip="减少色阶数量">
+                    <svg viewBox="0 0 16 16" aria-hidden="true">
+                      <path d="M4 6.5L8 10.5L12 6.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.3" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="toolbar-pill toolbar-color toolbar-color-input">
+              <button type="button" class="color-swatch-btn" id="anchorColorTrigger" aria-label="选择参考颜色" data-tooltip="选择参考颜色">
+                <span class="color-swatch" id="anchorSwatch"></span>
+              </button>
+              <input type="color" id="anchorColorPicker" value="#0BBBD6" aria-label="选择参考颜色" />
+              <input
+                type="text"
+                id="anchorHexInput"
+                value="#0BBBD6"
+                inputmode="text"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="输入参考颜色十六进制值"
+              />
+              <span id="anchorHexSizer" class="anchor-hex-sizer" aria-hidden="true"></span>
+              <button type="button" class="pill-icon-btn color-action-btn" id="shuffleBtn" aria-label="换一个" data-tooltip="换一个">
+                <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                  <path d="M2 7.5C2.27614 7.5 2.5 7.72386 2.5 8C2.5 11.0376 4.96244 13.5 8 13.5C9.48372 13.5 10.8295 12.9133 11.8193 11.958C12.018 11.7663 12.3346 11.7712 12.5264 11.9697C12.7182 12.1684 12.7123 12.485 12.5137 12.6768C11.3449 13.8049 9.75321 14.5 8 14.5C5.6828 14.5 3.65094 13.2861 2.5 11.4609V13.333C2.5 13.6092 2.27614 13.833 2 13.833C1.72386 13.833 1.5 13.6092 1.5 13.333V8C1.5 7.72386 1.72386 7.5 2 7.5ZM8 1.5C10.3169 1.5 12.349 2.71329 13.5 4.53809V2.66699C13.5 2.39085 13.7239 2.16699 14 2.16699C14.2761 2.16699 14.5 2.39085 14.5 2.66699V8C14.5 8.06891 14.4862 8.1346 14.4609 8.19434C14.4483 8.22421 14.433 8.25272 14.415 8.2793C14.379 8.33278 14.3328 8.37898 14.2793 8.41504C14.1996 8.46875 14.1033 8.5 14 8.5C13.9656 8.5 13.9319 8.49686 13.8994 8.49023C13.8344 8.47697 13.7739 8.45086 13.7207 8.41504C13.6672 8.37898 13.621 8.33278 13.585 8.2793C13.567 8.25272 13.5517 8.22421 13.5391 8.19434C13.5138 8.1346 13.5 8.06891 13.5 8C13.5 4.96244 11.0376 2.5 8 2.5C6.44602 2.5 5.04284 3.14388 4.04199 4.18066C3.85018 4.37909 3.53355 4.38507 3.33496 4.19336C3.13638 4.00156 3.13149 3.68497 3.32324 3.48633C4.50473 2.26242 6.16365 1.5 8 1.5Z" fill="currentColor" fill-opacity="0.6" />
+                </svg>
+              </button>
+            </div>
+
+            <div class="toolbar-pill toolbar-mode toolbar-mode-toggle" id="modeToggle" role="group" aria-label="切换浅色或暗色模式">
+              <button type="button" class="mode-btn is-active" data-mode="light" aria-label="浅色模式" data-tooltip="浅色模式">
+                <svg viewBox="0 0 20 20" aria-hidden="true">
+                  <path d="M10 15.4167C12.9915 15.4167 15.4167 12.9915 15.4167 10C15.4167 7.00846 12.9915 4.58333 10 4.58333C7.00846 4.58333 4.58333 7.00846 4.58333 10C4.58333 12.9915 7.00846 15.4167 10 15.4167Z" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="1.25" />
+                  <path d="M10 2.5C10.5753 2.5 11.0417 2.03363 11.0417 1.45833C11.0417 0.883038 10.5753 0.416667 10 0.416667C9.42471 0.416667 8.95833 0.883038 8.95833 1.45833C8.95833 2.03363 9.42471 2.5 10 2.5Z" fill="currentColor" />
+                  <path d="M16.0417 5C16.617 5 17.0833 4.53363 17.0833 3.95833C17.0833 3.38304 16.617 2.91667 16.0417 2.91667C15.4664 2.91667 15 3.38304 15 3.95833C15 4.53363 15.4664 5 16.0417 5Z" fill="currentColor" />
+                  <path d="M18.5417 11.0417C19.117 11.0417 19.5833 10.5753 19.5833 10C19.5833 9.42471 19.117 8.95833 18.5417 8.95833C17.9664 8.95833 17.5 9.42471 17.5 10C17.5 10.5753 17.9664 11.0417 18.5417 11.0417Z" fill="currentColor" />
+                  <path d="M16.0417 17.0833C16.617 17.0833 17.0833 16.617 17.0833 16.0417C17.0833 15.4664 16.617 15 16.0417 15C15.4664 15 15 15.4664 15 16.0417C15 16.617 15.4664 17.0833 16.0417 17.0833Z" fill="currentColor" />
+                  <path d="M10 19.5833C10.5753 19.5833 11.0417 19.117 11.0417 18.5417C11.0417 17.9664 10.5753 17.5 10 17.5C9.42471 17.5 8.95833 17.9664 8.95833 18.5417C8.95833 19.117 9.42471 19.5833 10 19.5833Z" fill="currentColor" />
+                  <path d="M3.95833 17.0833C4.53363 17.0833 5 16.617 5 16.0417C5 15.4664 4.53363 15 3.95833 15C3.38304 15 2.91667 15.4664 2.91667 16.0417C2.91667 16.617 3.38304 17.0833 3.95833 17.0833Z" fill="currentColor" />
+                  <path d="M1.45833 11.0417C2.03363 11.0417 2.5 10.5753 2.5 10C2.5 9.42471 2.03363 8.95833 1.45833 8.95833C0.883038 8.95833 0.416667 9.42471 0.416667 10C0.416667 10.5753 0.883038 11.0417 1.45833 11.0417Z" fill="currentColor" />
+                  <path d="M3.95833 5C4.53363 5 5 4.53363 5 3.95833C5 3.38304 4.53363 2.91667 3.95833 2.91667C3.38304 2.91667 2.91667 3.38304 2.91667 3.95833C2.91667 4.53363 3.38304 5 3.95833 5Z" fill="currentColor" />
+                </svg>
+              </button>
+              <button type="button" class="mode-btn" data-mode="dark" aria-label="暗色模式" data-tooltip="暗色模式">
+                <svg viewBox="0 0 20 20" aria-hidden="true">
+                  <path d="M11.6886 1.83785C9.4095 2.43206 7.72729 4.50442 7.72729 6.96971C7.72729 9.8985 10.1015 12.2727 13.0303 12.2727C15.4956 12.2727 17.568 10.5905 18.1621 8.31138C18.2744 8.85667 18.3333 9.42146 18.3333 10C18.3333 14.6024 14.6024 18.3333 10 18.3333C5.39763 18.3333 1.66667 14.6024 1.66667 10C1.66667 5.39763 5.39763 1.66667 10 1.66667C10.5785 1.66667 11.1433 1.72562 11.6886 1.83785Z" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-opacity="0.6" stroke-width="1.25" />
+                </svg>
+              </button>
+            </div>
+          </section>
+        </header>
+
+        <section class="panel panel-scale">
+          <div class="panel-heading panel-heading-inline panel-heading-control">
+            <div>
+              <span class="panel-title">Palyground</span>
+              <p id="statusText">当前以色阶 6 为参考</p>
+            </div>
+            <div class="preview-format-toggle" id="previewFormatToggle" role="tablist" aria-label="切换颜色值格式">
+              <button type="button" class="preview-format-btn is-active" data-format="hex" role="tab" aria-selected="true">HEX</button>
+              <button type="button" class="preview-format-btn" data-format="hsb" role="tab" aria-selected="false">HSB</button>
+              <button type="button" class="preview-format-btn" data-format="rgb" role="tab" aria-selected="false">RGB</button>
+            </div>
+          </div>
+
+          <div class="band-stack">
+            <div class="band-group band-group-primary" id="scaleBandGroup">
+              <div class="scale-band" id="scaleBand"></div>
+              <div class="scale-band-indicator" id="scaleBandIndicator" aria-hidden="true">
+                <img class="scale-band-indicator-image scale-band-indicator-image-light" src="./current-indicator-light.svg" alt="" />
+                <img class="scale-band-indicator-image scale-band-indicator-image-dark" src="./current-indicator-dark.svg" alt="" />
+              </div>
+            </div>
+
+            <div class="band-group">
+              <div class="scale-band scale-band-neutral" id="neutralScaleBand"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel panel-preview">
+          <div class="panel-heading">
+            <div>
+              <span class="panel-title">实验示例</span>
+              <p>彩色案例，方便你看品牌色进入界面后的效果</p>
+            </div>
+          </div>
+          <div class="preview-stage" id="previewStage">
+            <div class="preview-showcase">
+              <span class="preview-badge">彩色案例</span>
+              <h2>品牌色进入页面后的落位效果</h2>
+              <p>这里保留一个最小化界面样例，方便快速判断当前色阶进入页面后的层级和对比。</p>
+              <div class="preview-actions" aria-hidden="true">
+                <button type="button" class="preview-cta">主操作按钮</button>
+                <span class="preview-status">已应用当前色阶</span>
+              </div>
+              <div class="preview-metric-list" id="previewMetricList"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel panel-export">
+          <div class="panel-heading panel-heading-inline">
+            <div>
+              <span class="panel-title">变量输出</span>
+              <p>直接复制给设计或前端</p>
+            </div>
+            <button type="button" class="pill-icon-btn panel-copy-btn" id="copyTokensBtn" aria-label="复制变量" data-tooltip="复制变量">
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M16.7451 1.45801C17.7372 1.45821 18.5418 2.26279 18.542 3.25488V13.4111C18.542 14.4034 17.7373 15.2078 16.7451 15.208H15.208V16.7451C15.2078 17.7373 14.4034 18.542 13.4111 18.542H3.25488C2.26279 18.5418 1.45821 17.7372 1.45801 16.7451V6.58887C1.45801 5.5966 2.26266 4.79219 3.25488 4.79199H4.79199V3.25488C4.79219 2.26266 5.5966 1.45801 6.58887 1.45801H16.7451ZM3.25488 6.04199C2.95302 6.04219 2.70801 6.28696 2.70801 6.58887V16.7451C2.70821 17.0469 2.95314 17.2918 3.25488 17.292H13.4111C13.713 17.292 13.9578 17.047 13.958 16.7451V6.58887C13.958 6.28684 13.7132 6.04199 13.4111 6.04199H3.25488ZM6.58887 2.70801C6.28696 2.70801 6.04219 2.95302 6.04199 3.25488V4.79199H13.4111C14.4035 4.79199 15.208 5.59648 15.208 6.58887V13.958H16.7451C17.047 13.9578 17.292 13.713 17.292 13.4111V3.25488C17.2918 2.95314 17.0469 2.70821 16.7451 2.70801H6.58887Z" fill="currentColor" />
+              </svg>
+              <span class="copy-feedback" id="copyFeedback" aria-live="polite">已复制</span>
+            </button>
+          </div>
+          <div class="export-surface">
+            <div class="export-meta">
+              <span class="export-meta-label">实时输出</span>
+              <span class="export-meta-value" id="exportMeta">当前参考：色阶 6 / 10 阶</span>
+            </div>
+            <pre class="export-code" id="tokensPreview" aria-label="色阶变量预览"></pre>
+          </div>
+          <textarea id="tokensOutput" readonly aria-label="色阶变量输出" hidden></textarea>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./script.js"></script>
+  </body>
+</html>
