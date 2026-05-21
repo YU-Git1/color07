@@ -24,7 +24,7 @@
             </span>
             <div class="hero-copy-text">
               <h1>色阶</h1>
-              <p>任意节点替换，整条色阶自动重算</p>
+              <p>任意节点，皆是主色</p>
             </div>
           </div>
 
@@ -33,7 +33,17 @@
               <span class="toolbar-label">色阶基准</span>
               <span class="toolbar-divider" aria-hidden="true"></span>
               <span class="toolbar-select-value">
-                <select id="anchorSelect" aria-label="选择参考色所在位置"></select>
+                <button
+                  type="button"
+                  class="toolbar-anchor-trigger"
+                  id="anchorSelectTrigger"
+                  aria-label="选择参考色所在位置"
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                >
+                  <span id="anchorSelectValue">6</span>
+                </button>
+                <span class="toolbar-anchor-menu" id="anchorSelectMenu" role="listbox" aria-label="选择参考色所在位置"></span>
                 <svg class="toolbar-chevron" viewBox="0 0 16 16" aria-hidden="true">
                   <path d="M4 6.5L8 10.5L12 6.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.3" />
                 </svg>
@@ -75,6 +85,48 @@
                 aria-label="输入参考颜色十六进制值"
               />
               <span id="anchorHexSizer" class="anchor-hex-sizer" aria-hidden="true"></span>
+              <div class="color-picker-popover" id="anchorColorPopover" hidden>
+                <div class="color-picker-surface">
+                  <div class="color-picker-sv" id="colorPickerSv" aria-label="选择饱和度和明度">
+                    <button type="button" class="color-picker-sv-thumb" id="colorPickerSvThumb" aria-label="当前颜色位置"></button>
+                  </div>
+                  <div class="color-picker-tools">
+                    <button type="button" class="color-picker-eyedropper" id="colorPickerEyeDropper" aria-label="吸管取色">
+                      <svg viewBox="0 0 16 16" aria-hidden="true">
+                        <path d="M12.146 1.146a1.5 1.5 0 0 1 2.122 2.122l-1.36 1.36.823.823a.75.75 0 0 1-1.06 1.06l-.824-.822-5.74 5.74a2 2 0 0 1-.828.498l-2.37.71a.75.75 0 0 1-.933-.933l.71-2.37a2 2 0 0 1 .499-.828l5.739-5.74-.822-.823a.75.75 0 1 1 1.06-1.06l.823.823 1.36-1.36Zm-7.678 8.799a.5.5 0 0 0-.125.207l-.406 1.353 1.353-.406a.5.5 0 0 0 .207-.125l5.563-5.563-1.03-1.03-5.562 5.564Z" fill="currentColor" />
+                      </svg>
+                    </button>
+                    <div class="color-picker-preview">
+                      <span class="color-picker-preview-swatch" id="colorPickerPreviewSwatch"></span>
+                    </div>
+                    <div class="color-picker-hue-wrap">
+                      <input type="range" min="0" max="360" value="188" class="color-picker-hue" id="colorPickerHue" aria-label="调整色相" />
+                    </div>
+                  </div>
+                  <div class="color-picker-inputs">
+                    <div class="color-picker-model-toggle" role="group" aria-label="切换颜色数值格式">
+                      <button type="button" class="color-picker-model-btn" data-color-model="hex">HEX</button>
+                      <button type="button" class="color-picker-model-btn" data-color-model="hsb">HSB</button>
+                      <button type="button" class="color-picker-model-btn is-active" data-color-model="rgb">RGB</button>
+                      <button type="button" class="color-picker-model-btn" data-color-model="hsl">HSL</button>
+                    </div>
+                    <div class="color-picker-channel-grid" id="colorPickerChannelGrid">
+                      <label class="color-picker-channel">
+                        <input type="number" id="colorChannel1" />
+                        <span id="colorChannelLabel1">R</span>
+                      </label>
+                      <label class="color-picker-channel">
+                        <input type="number" id="colorChannel2" />
+                        <span id="colorChannelLabel2">G</span>
+                      </label>
+                      <label class="color-picker-channel">
+                        <input type="number" id="colorChannel3" />
+                        <span id="colorChannelLabel3">B</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <button type="button" class="pill-icon-btn color-action-btn" id="shuffleBtn" aria-label="换一个" data-tooltip="换一个">
                 <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
                   <path d="M2 7.5C2.27614 7.5 2.5 7.72386 2.5 8C2.5 11.0376 4.96244 13.5 8 13.5C9.48372 13.5 10.8295 12.9133 11.8193 11.958C12.018 11.7663 12.3346 11.7712 12.5264 11.9697C12.7182 12.1684 12.7123 12.485 12.5137 12.6768C11.3449 13.8049 9.75321 14.5 8 14.5C5.6828 14.5 3.65094 13.2861 2.5 11.4609V13.333C2.5 13.6092 2.27614 13.833 2 13.833C1.72386 13.833 1.5 13.6092 1.5 13.333V8C1.5 7.72386 1.72386 7.5 2 7.5ZM8 1.5C10.3169 1.5 12.349 2.71329 13.5 4.53809V2.66699C13.5 2.39085 13.7239 2.16699 14 2.16699C14.2761 2.16699 14.5 2.39085 14.5 2.66699V8C14.5 8.06891 14.4862 8.1346 14.4609 8.19434C14.4483 8.22421 14.433 8.25272 14.415 8.2793C14.379 8.33278 14.3328 8.37898 14.2793 8.41504C14.1996 8.46875 14.1033 8.5 14 8.5C13.9656 8.5 13.9319 8.49686 13.8994 8.49023C13.8344 8.47697 13.7739 8.45086 13.7207 8.41504C13.6672 8.37898 13.621 8.33278 13.585 8.2793C13.567 8.25272 13.5517 8.22421 13.5391 8.19434C13.5138 8.1346 13.5 8.06891 13.5 8C13.5 4.96244 11.0376 2.5 8 2.5C6.44602 2.5 5.04284 3.14388 4.04199 4.18066C3.85018 4.37909 3.53355 4.38507 3.33496 4.19336C3.13638 4.00156 3.13149 3.68497 3.32324 3.48633C4.50473 2.26242 6.16365 1.5 8 1.5Z" fill="currentColor" fill-opacity="0.6" />
@@ -115,6 +167,7 @@
               <button type="button" class="preview-format-btn is-active" data-format="hex" role="tab" aria-selected="true">HEX</button>
               <button type="button" class="preview-format-btn" data-format="hsb" role="tab" aria-selected="false">HSB</button>
               <button type="button" class="preview-format-btn" data-format="rgb" role="tab" aria-selected="false">RGB</button>
+              <button type="button" class="preview-format-btn" data-format="hsl" role="tab" aria-selected="false">HSL</button>
             </div>
           </div>
 
@@ -127,29 +180,75 @@
               </div>
             </div>
 
-            <div class="band-group">
+            <div class="band-group" hidden>
               <div class="scale-band scale-band-neutral" id="neutralScaleBand"></div>
             </div>
           </div>
         </section>
 
         <section class="panel panel-preview">
-          <div class="panel-heading">
+          <div class="panel-heading panel-heading-inline">
             <div>
               <span class="panel-title">实验示例</span>
-              <p>彩色案例，方便你看品牌色进入界面后的效果</p>
+              <p>切换不同行业场景，直接看当前配色方案落进真实界面后的效果</p>
+            </div>
+            <div class="preview-scene-toggle" id="previewSceneToggle" role="tablist" aria-label="切换行业场景">
+              <button type="button" class="preview-scene-btn is-active" data-scene="app" role="tab" aria-selected="true">APP</button>
+              <button type="button" class="preview-scene-btn" data-scene="site" role="tab" aria-selected="false">Site</button>
             </div>
           </div>
           <div class="preview-stage" id="previewStage">
-            <div class="preview-showcase">
-              <span class="preview-badge">彩色案例</span>
-              <h2>品牌色进入页面后的落位效果</h2>
-              <p>这里保留一个最小化界面样例，方便快速判断当前色阶进入页面后的层级和对比。</p>
-              <div class="preview-actions" aria-hidden="true">
-                <button type="button" class="preview-cta">主操作按钮</button>
-                <span class="preview-status">已应用当前色阶</span>
+            <div class="preview-layout">
+              <div class="preview-showcase">
+                <span class="preview-badge" id="previewBadge">APP 场景</span>
+                <h2 id="previewHeading">看这组颜色放进移动应用后，按钮、标签和卡片是否协调</h2>
+                <p id="previewDescription">这里不是单纯看颜色好不好看，而是直接看它落进产品界面后，层级、对比和品牌感能不能同时成立。</p>
+                <div class="preview-actions" aria-hidden="true">
+                  <button type="button" class="preview-cta" id="previewPrimaryAction">主操作按钮</button>
+                  <button type="button" class="preview-secondary" id="previewSecondaryAction">次级按钮</button>
+                  <span class="preview-status" id="previewStatus">当前锚点已应用</span>
+                </div>
+                <div class="preview-metric-list" id="previewMetricList"></div>
               </div>
-              <div class="preview-metric-list" id="previewMetricList"></div>
+
+              <div class="preview-scene">
+                <div class="preview-scene-shell">
+                  <div class="preview-scene-topbar" aria-hidden="true">
+                    <span class="preview-scene-dot"></span>
+                    <span class="preview-scene-dot"></span>
+                    <span class="preview-scene-dot"></span>
+                    <span class="preview-scene-tab" id="previewSceneTab">App Home</span>
+                  </div>
+
+                  <div class="preview-scene-body">
+                    <div class="preview-scene-copy">
+                      <span class="preview-scene-kicker" id="previewSceneKicker">APP 界面</span>
+                      <h3 id="previewSceneTitle">会员卡、功能标签和主按钮的真实落位</h3>
+                      <p id="previewSceneDescription">模拟常见产品首页，判断当前主色作为强调色时，是否能同时撑住主操作、浅底标签和深色信息块。</p>
+                      <div class="preview-actions preview-actions-scene" aria-hidden="true">
+                        <button type="button" class="preview-cta" id="previewScenePrimaryAction">立即应用</button>
+                        <button type="button" class="preview-secondary" id="previewSceneSecondaryAction">查看变量</button>
+                      </div>
+                    </div>
+
+                    <div class="preview-scene-aside">
+                      <div class="preview-swatch-card preview-swatch-card-accent">
+                        <span class="preview-swatch-label" id="previewAccentLabel">当前锚点</span>
+                        <strong id="previewAnchorName">color-6</strong>
+                        <span id="previewAnchorValue">#0BBBD6</span>
+                      </div>
+
+                      <div class="preview-chip-row" id="previewChipRow"></div>
+
+                      <div class="preview-swatch-card preview-swatch-card-deep">
+                        <span class="preview-swatch-label" id="previewDeepLabel">深色信息块</span>
+                        <strong id="previewDeepTitle">文字对比检查</strong>
+                        <span id="previewDeepValue">#3D4C52</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>

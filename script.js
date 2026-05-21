@@ -5,6 +5,9 @@ const state = {
   anchorHex: "#0BBBD6",
   palette: [],
   previewFormat: "hex",
+  previewScene: "app",
+  colorPickerModel: "rgb",
+  colorPickerHue: 188,
 };
 
 const sampleColors = ["#0BBBD6", "#4F46E5", "#22C55E", "#F97316", "#E11D48", "#A855F7"];
@@ -21,12 +24,27 @@ const refs = {
   countValue: document.getElementById("countValue"),
   countIncreaseBtn: document.getElementById("countIncreaseBtn"),
   countDecreaseBtn: document.getElementById("countDecreaseBtn"),
-  anchorSelect: document.getElementById("anchorSelect"),
+  anchorSelectTrigger: document.getElementById("anchorSelectTrigger"),
+  anchorSelectValue: document.getElementById("anchorSelectValue"),
+  anchorSelectMenu: document.getElementById("anchorSelectMenu"),
   anchorColorPicker: document.getElementById("anchorColorPicker"),
   anchorColorTrigger: document.getElementById("anchorColorTrigger"),
+  anchorColorPopover: document.getElementById("anchorColorPopover"),
   anchorSwatch: document.getElementById("anchorSwatch"),
   anchorHexInput: document.getElementById("anchorHexInput"),
   anchorHexSizer: document.getElementById("anchorHexSizer"),
+  colorPickerSv: document.getElementById("colorPickerSv"),
+  colorPickerSvThumb: document.getElementById("colorPickerSvThumb"),
+  colorPickerHue: document.getElementById("colorPickerHue"),
+  colorPickerPreviewSwatch: document.getElementById("colorPickerPreviewSwatch"),
+  colorPickerEyeDropper: document.getElementById("colorPickerEyeDropper"),
+  colorPickerChannel1: document.getElementById("colorChannel1"),
+  colorPickerChannel2: document.getElementById("colorChannel2"),
+  colorPickerChannel3: document.getElementById("colorChannel3"),
+  colorPickerChannelGrid: document.getElementById("colorPickerChannelGrid"),
+  colorPickerChannelLabel1: document.getElementById("colorChannelLabel1"),
+  colorPickerChannelLabel2: document.getElementById("colorChannelLabel2"),
+  colorPickerChannelLabel3: document.getElementById("colorChannelLabel3"),
   statusText: document.getElementById("statusText"),
   scaleBandGroup: document.getElementById("scaleBandGroup"),
   scaleBand: document.getElementById("scaleBand"),
@@ -34,7 +52,27 @@ const refs = {
   neutralScaleBand: document.getElementById("neutralScaleBand"),
   previewStage: document.getElementById("previewStage"),
   previewFormatToggle: document.getElementById("previewFormatToggle"),
+  previewSceneToggle: document.getElementById("previewSceneToggle"),
+  previewBadge: document.getElementById("previewBadge"),
+  previewHeading: document.getElementById("previewHeading"),
+  previewDescription: document.getElementById("previewDescription"),
+  previewPrimaryAction: document.getElementById("previewPrimaryAction"),
+  previewSecondaryAction: document.getElementById("previewSecondaryAction"),
+  previewStatus: document.getElementById("previewStatus"),
   previewMetricList: document.getElementById("previewMetricList"),
+  previewSceneTab: document.getElementById("previewSceneTab"),
+  previewSceneKicker: document.getElementById("previewSceneKicker"),
+  previewSceneTitle: document.getElementById("previewSceneTitle"),
+  previewSceneDescription: document.getElementById("previewSceneDescription"),
+  previewScenePrimaryAction: document.getElementById("previewScenePrimaryAction"),
+  previewSceneSecondaryAction: document.getElementById("previewSceneSecondaryAction"),
+  previewAccentLabel: document.getElementById("previewAccentLabel"),
+  previewAnchorName: document.getElementById("previewAnchorName"),
+  previewAnchorValue: document.getElementById("previewAnchorValue"),
+  previewChipRow: document.getElementById("previewChipRow"),
+  previewDeepLabel: document.getElementById("previewDeepLabel"),
+  previewDeepTitle: document.getElementById("previewDeepTitle"),
+  previewDeepValue: document.getElementById("previewDeepValue"),
   exportMeta: document.getElementById("exportMeta"),
   tokensPreview: document.getElementById("tokensPreview"),
   tokensOutput: document.getElementById("tokensOutput"),
@@ -52,12 +90,20 @@ let scrollEffectFrame = 0;
 let scaleIndicatorFrame = 0;
 let heroMotionReadyFrame = 0;
 let heroResizeSyncTimer = 0;
+let scaleIndicatorResizeSyncTimer = 0;
+let anchorMenuOpen = false;
+let colorPopoverOpen = false;
+let colorPickerDraggingSv = false;
 let anchorStepResizeObserver = null;
 const browserDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
 const faviconVersion = "20260520-2";
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
+}
+
+function lerp(start, end, amount) {
+  return start + (end - start) * amount;
 }
 
 function getScrollContainer() {
@@ -118,6 +164,21 @@ function syncHeroResizeMotion() {
     refs.heroCard?.classList.remove("is-resize-sync");
     heroResizeSyncTimer = 0;
   }, 120);
+}
+
+function syncScaleIndicatorResizeMotion() {
+  if (!refs.scaleBandIndicator) return;
+
+  refs.scaleBandIndicator.classList.add("is-resize-sync");
+
+  if (scaleIndicatorResizeSyncTimer) {
+    window.clearTimeout(scaleIndicatorResizeSyncTimer);
+  }
+
+  scaleIndicatorResizeSyncTimer = window.setTimeout(() => {
+    refs.scaleBandIndicator?.classList.remove("is-resize-sync");
+    scaleIndicatorResizeSyncTimer = 0;
+  }, 96);
 }
 
 function ensureMessage() {
@@ -232,6 +293,122 @@ function rgbToHsb({ r, g, b }) {
   };
 }
 
+function rgbToHsl({ r, g, b }) {
+  const red = clamp(r, 0, 1);
+  const green = clamp(g, 0, 1);
+  const blue = clamp(b, 0, 1);
+  const max = Math.max(red, green, blue);
+  const min = Math.min(red, green, blue);
+  const delta = max - min;
+  const lightness = (max + min) / 2;
+  let h = 0;
+  let s = 0;
+
+  if (delta !== 0) {
+    s = delta / (1 - Math.abs(2 * lightness - 1));
+
+    if (max === red) {
+      h = ((green - blue) / delta) % 6;
+    } else if (max === green) {
+      h = (blue - red) / delta + 2;
+    } else {
+      h = (red - green) / delta + 4;
+    }
+
+    h *= 60;
+  }
+
+  if (h < 0) {
+    h += 360;
+  }
+
+  return {
+    h: Math.round(h),
+    s: Math.round(clamp(s, 0, 1) * 100),
+    l: Math.round(clamp(lightness, 0, 1) * 100),
+  };
+}
+
+function hsbToRgb({ h, s, b }) {
+  const hue = ((h % 360) + 360) % 360;
+  const saturation = clamp(s, 0, 100) / 100;
+  const brightness = clamp(b, 0, 100) / 100;
+  const chroma = brightness * saturation;
+  const segment = hue / 60;
+  const second = chroma * (1 - Math.abs((segment % 2) - 1));
+  const match = brightness - chroma;
+
+  let red = 0;
+  let green = 0;
+  let blue = 0;
+
+  if (segment >= 0 && segment < 1) {
+    red = chroma;
+    green = second;
+  } else if (segment < 2) {
+    red = second;
+    green = chroma;
+  } else if (segment < 3) {
+    green = chroma;
+    blue = second;
+  } else if (segment < 4) {
+    green = second;
+    blue = chroma;
+  } else if (segment < 5) {
+    red = second;
+    blue = chroma;
+  } else {
+    red = chroma;
+    blue = second;
+  }
+
+  return {
+    r: red + match,
+    g: green + match,
+    b: blue + match,
+  };
+}
+
+function hslToRgb({ h, s, l }) {
+  const hue = ((h % 360) + 360) % 360;
+  const saturation = clamp(s, 0, 100) / 100;
+  const lightness = clamp(l, 0, 100) / 100;
+  const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation;
+  const segment = hue / 60;
+  const second = chroma * (1 - Math.abs((segment % 2) - 1));
+  const match = lightness - chroma / 2;
+
+  let red = 0;
+  let green = 0;
+  let blue = 0;
+
+  if (segment >= 0 && segment < 1) {
+    red = chroma;
+    green = second;
+  } else if (segment < 2) {
+    red = second;
+    green = chroma;
+  } else if (segment < 3) {
+    green = chroma;
+    blue = second;
+  } else if (segment < 4) {
+    green = second;
+    blue = chroma;
+  } else if (segment < 5) {
+    red = second;
+    blue = chroma;
+  } else {
+    red = chroma;
+    blue = second;
+  }
+
+  return {
+    r: red + match,
+    g: green + match,
+    b: blue + match,
+  };
+}
+
 function srgbToLinear(value) {
   return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
 }
@@ -303,6 +480,22 @@ function fitOklchToHex(oklch) {
   });
 }
 
+function getMaxChromaForLh(l, h) {
+  let low = 0;
+  let high = 0.4;
+
+  for (let attempt = 0; attempt < 18; attempt += 1) {
+    const middle = (low + high) / 2;
+    if (isInGamut(oklchToRgb({ l, c: middle, h }))) {
+      low = middle;
+    } else {
+      high = middle;
+    }
+  }
+
+  return low;
+}
+
 function getRelativeLuminance({ r, g, b }) {
   const toLinear = (channel) =>
     channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
@@ -334,6 +527,11 @@ function formatDisplayValue(hex, format = state.previewFormat) {
     return `${value.r}, ${value.g}, ${value.b}`;
   }
 
+  if (format === "hsl") {
+    const hsl = rgbToHsl(rgb);
+    return `${hsl.h}°, ${hsl.s}, ${hsl.l}`;
+  }
+
   const hsb = rgbToHsb(rgb);
   return `${hsb.h}°, ${hsb.s}, ${hsb.b}`;
 }
@@ -343,31 +541,128 @@ function buildBlueprint(count, mode) {
     const t = count === 1 ? 0 : index / (count - 1);
 
     if (mode === "light") {
-      const eased = Math.pow(t, 0.84);
-      const tail = Math.pow(t, 3.6) * 0.075;
-      const l = clamp(0.985 - 0.73 * eased - tail, 0.11, 0.985);
+      const eased = Math.pow(t, 0.82);
+      const tail = Math.pow(t, 3.1) * 0.11;
+      const l = clamp(0.988 - 0.69 * eased - tail, 0.1, 0.988);
       const cWeight = clamp(
-        0.24 +
-          1.02 * Math.pow(Math.sin(Math.PI * Math.pow(t, 0.92)), 0.9) -
-          Math.max(0, t - 0.84) * 0.3,
+        0.22 +
+          1.06 * Math.pow(Math.sin(Math.PI * Math.pow(t, 0.9)), 0.88) -
+          Math.max(0, t - 0.82) * 0.26,
         0.14,
         1.12,
       );
       return { l, cWeight };
     }
 
-    const eased = Math.pow(t, 0.88);
-    const lift = Math.pow(1 - t, 3.2) * 0.03;
-    const l = clamp(0.09 + 0.81 * eased + lift, 0.07, 0.965);
+    const eased = Math.pow(t, 0.9);
+    const lift = Math.pow(1 - t, 3) * 0.025;
+    const l = clamp(0.082 + 0.74 * eased + 0.12 * Math.pow(t, 2.25) + lift, 0.065, 0.968);
     const cWeight = clamp(
-      0.2 +
-        0.96 * Math.pow(Math.sin(Math.PI * Math.pow(t, 0.94)), 0.82) -
-        Math.max(0, t - 0.88) * 0.22,
+      0.18 +
+        0.98 * Math.pow(Math.sin(Math.PI * Math.pow(t, 0.96)), 0.84) -
+        Math.max(0, t - 0.86) * 0.2,
       0.14,
       1.08,
     );
     return { l, cWeight };
   });
+}
+
+function getAdaptiveLightnessLimits(anchorOklch, mode) {
+  const anchorIntensity = clamp(anchorOklch.c / Math.max(getMaxChromaForLh(anchorOklch.l, anchorOklch.h), 0.001), 0, 1);
+
+  if (mode === "light") {
+    return {
+      lower: lerp(0.085, 0.11, anchorIntensity),
+      upper: lerp(0.992, 0.975, anchorIntensity),
+    };
+  }
+
+  return {
+    lower: lerp(0.055, 0.078, anchorIntensity),
+    upper: lerp(0.972, 0.948, anchorIntensity),
+  };
+}
+
+function getAdaptiveHue(anchorHue, distance, delta, anchorChroma) {
+  if (anchorChroma < 0.028 || distance === 0) {
+    return anchorHue;
+  }
+
+  const coolRegion = anchorHue >= 140 && anchorHue <= 320;
+  const warmShift = coolRegion ? 1 : -1;
+  const shiftStrength = Math.pow(distance, 0.9) * (delta > 0 ? 4 : 6);
+  const nextHue = anchorHue + warmShift * shiftStrength * (delta > 0 ? 0.55 : -0.45);
+  return (nextHue + 360) % 360;
+}
+
+function interpolateHue(fromHue, toHue, amount) {
+  const delta = ((toHue - fromHue + 540) % 360) - 180;
+  return (fromHue + delta * amount + 360) % 360;
+}
+
+function smoothStepProfiles(steps, anchorIndex) {
+  if (steps.length <= 2) {
+    return steps;
+  }
+
+  let smoothed = steps.map((step) => ({ ...step }));
+
+  for (let pass = 0; pass < 2; pass += 1) {
+    smoothed = smoothed.map((step, index, source) => {
+      if (index === 0 || index === source.length - 1 || index === anchorIndex) {
+        return step;
+      }
+
+      const previous = source[index - 1];
+      const next = source[index + 1];
+      const averageChroma = (previous.c + step.c + next.c) / 3;
+      const averageHue = interpolateHue(interpolateHue(previous.h, step.h, 0.5), next.h, 2 / 3);
+
+      return {
+        ...step,
+        c: lerp(step.c, averageChroma, 0.34),
+        h: step.c < 0.02 ? step.h : interpolateHue(step.h, averageHue, 0.28),
+      };
+    });
+  }
+
+  return smoothed;
+}
+
+function getAdaptiveStepChroma({
+  anchorOklch,
+  anchorWeight,
+  stepWeight,
+  scaledL,
+  distance,
+  delta,
+  mode,
+}) {
+  const anchorMaxChroma = Math.max(getMaxChromaForLh(anchorOklch.l, anchorOklch.h), 0.001);
+  const anchorIntensity = clamp(anchorOklch.c / anchorMaxChroma, 0, 1);
+  const relativeWeight = Math.pow((stepWeight + 0.08) / (anchorWeight + 0.08), 0.9);
+  const distanceFade = 1 - Math.pow(distance, 1.08) * lerp(0.16, 0.34, anchorIntensity);
+  const brightRetention = delta > 0 ? lerp(0.88, 0.56, anchorIntensity) : 1;
+  const shadowRetention = delta < 0 ? lerp(0.92, 0.74, anchorIntensity) : 1;
+  const edgeFade = scaledL > 0.91 ? 1 - (scaledL - 0.91) * 3.1 : 1;
+  const floorFade = scaledL < 0.14 ? 1 - (0.14 - scaledL) * 2 : 1;
+  const neutralSupport = anchorIntensity < 0.24 ? lerp(1.26, 1, anchorIntensity / 0.24) : 1;
+  const modeBias = mode === "light" ? 1 : 0.95;
+  const adaptiveHue = getAdaptiveHue(anchorOklch.h, distance, delta, anchorOklch.c);
+  const safeMaxChroma = getMaxChromaForLh(scaledL, adaptiveHue) * (mode === "light" ? 0.92 : 0.88);
+  const rawChroma =
+    anchorOklch.c *
+    relativeWeight *
+    distanceFade *
+    brightRetention *
+    shadowRetention *
+    edgeFade *
+    floorFade *
+    neutralSupport *
+    modeBias;
+
+  return clamp(rawChroma, 0, Math.max(0, safeMaxChroma));
 }
 
 function buildPalette(anchorHex, anchorIndex, count, mode) {
@@ -379,38 +674,57 @@ function buildPalette(anchorHex, anchorIndex, count, mode) {
   const anchorWeight = blueprint[anchorIndex]?.cWeight ?? 1;
   const brighterDeltas = lightnessProfile.filter((value) => value > anchorTarget).map((value) => value - anchorTarget);
   const deeperDeltas = lightnessProfile.filter((value) => value < anchorTarget).map((value) => value - anchorTarget);
-  const upperLimit = mode === "light" ? 0.985 : 0.965;
-  const lowerLimit = mode === "light" ? 0.11 : 0.07;
+  const { upper: upperLimit, lower: lowerLimit } = getAdaptiveLightnessLimits(anchorOklch, mode);
   const maxBrighterDelta = brighterDeltas.length ? Math.max(...brighterDeltas, 0) : 0;
   const maxDeeperDelta = deeperDeltas.length ? Math.min(...deeperDeltas, 0) : 0;
   const lightenScale = maxBrighterDelta > 0 ? Math.min(1, (upperLimit - anchorOklch.l) / maxBrighterDelta) : 1;
   const darkenScale = maxDeeperDelta < 0 ? Math.min(1, (anchorOklch.l - lowerLimit) / Math.abs(maxDeeperDelta)) : 1;
 
-  return blueprint.map((step, index) => {
+  const rawSteps = blueprint.map((step, index) => {
     if (index === anchorIndex) {
-      return { index, hex: formatHex(anchorHex), oklch: anchorOklch };
+      return {
+        index,
+        l: anchorOklch.l,
+        c: anchorOklch.c,
+        h: anchorOklch.h,
+        isAnchor: true,
+      };
     }
 
     const delta = step.l - anchorTarget;
     const scaledL = anchorOklch.l + delta * (delta > 0 ? lightenScale : darkenScale);
     const stepDistance = Math.abs(index - anchorIndex) / Math.max(count - 1, 1);
-    const relativeWeight = Math.pow((step.cWeight + 0.08) / (anchorWeight + 0.08), 0.88);
-    const fadeByDistance = 1 - Math.pow(stepDistance, 1.18) * 0.2;
-    const fadeForBrights = scaledL > 0.9 ? 1 - (scaledL - 0.9) * 3.8 : 1;
-    const fadeForShadows = scaledL < 0.16 ? 1 - (0.16 - scaledL) * 1.8 : 1;
-    const modeBias = mode === "light" ? 1 : 0.94;
-    const chroma = clamp(
-      anchorOklch.c * relativeWeight * fadeByDistance * fadeForBrights * fadeForShadows * modeBias,
-      0,
-      0.34,
-    );
-    const hex = fitOklchToHex({
+    const hue = getAdaptiveHue(anchorOklch.h, stepDistance, delta, anchorOklch.c);
+    const chroma = getAdaptiveStepChroma({
+      anchorOklch,
+      anchorWeight,
+      stepWeight: step.cWeight,
+      scaledL,
+      distance: stepDistance,
+      delta,
+      mode,
+    });
+    return {
+      index,
       l: clamp(scaledL, lowerLimit, upperLimit),
       c: chroma,
-      h: anchorOklch.h,
+      h: hue,
+      isAnchor: false,
+    };
+  });
+
+  return smoothStepProfiles(rawSteps, anchorIndex).map((step) => {
+    if (step.isAnchor) {
+      return { index: step.index, hex: formatHex(anchorHex), oklch: anchorOklch };
+    }
+
+    const hex = fitOklchToHex({
+      l: step.l,
+      c: step.c,
+      h: step.h,
     });
 
-    return { index, hex };
+    return { index: step.index, hex };
   });
 }
 
@@ -438,8 +752,21 @@ function buildStepName(prefix, index) {
 }
 
 function updateAnchorOptions() {
-  refs.anchorSelect.innerHTML = Array.from({ length: state.count }, (_, index) => {
-    return `<option value="${index}" ${index === state.anchorIndex ? "selected" : ""}>${index + 1}</option>`;
+  if (!refs.anchorSelectMenu) return;
+
+  refs.anchorSelectMenu.innerHTML = Array.from({ length: state.count }, (_, index) => {
+    const isActive = index === state.anchorIndex;
+    return `
+      <button
+        type="button"
+        class="toolbar-anchor-option ${isActive ? "is-active" : ""}"
+        data-anchor-option="${index}"
+        role="option"
+        aria-selected="${String(isActive)}"
+      >
+        ${index + 1}
+      </button>
+    `;
   }).join("");
 }
 
@@ -459,6 +786,15 @@ function setPreviewFormatState(value) {
   if (!refs.previewFormatToggle) return;
   refs.previewFormatToggle.querySelectorAll("[data-format]").forEach((button) => {
     const isActive = button.dataset.format === value;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-selected", String(isActive));
+  });
+}
+
+function setPreviewSceneState(value) {
+  if (!refs.previewSceneToggle) return;
+  refs.previewSceneToggle.querySelectorAll("[data-scene]").forEach((button) => {
+    const isActive = button.dataset.scene === value;
     button.classList.toggle("is-active", isActive);
     button.setAttribute("aria-selected", String(isActive));
   });
@@ -577,10 +913,196 @@ function syncInputs() {
   refs.anchorColorPicker.value = state.anchorHex;
   refs.anchorHexInput.value = state.anchorHex;
   refs.anchorSwatch.style.background = state.anchorHex;
-  refs.anchorSelect.value = String(state.anchorIndex);
+  if (refs.anchorSelectValue) {
+    refs.anchorSelectValue.textContent = String(state.anchorIndex + 1);
+  }
   refs.statusText.innerHTML = `当前以 色阶 ${state.anchorIndex + 1} 为参考`;
   syncAnchorHexWidth(state.anchorHex);
   syncCountStepper();
+  syncColorPopover();
+}
+
+function syncColorPopover() {
+  if (!refs.anchorColorPopover) return;
+
+  const rgb = hexToRgb(state.anchorHex);
+  if (!rgb) return;
+
+  const hsb = rgbToHsb(rgb);
+  const hsl = rgbToHsl(rgb);
+  const hue = hsb.s === 0 ? state.colorPickerHue : hsb.h;
+  state.colorPickerHue = hue;
+
+  refs.colorPickerSv?.style.setProperty("--picker-hue-color", `hsl(${hue} 100% 50%)`);
+  refs.colorPickerPreviewSwatch && (refs.colorPickerPreviewSwatch.style.background = state.anchorHex);
+
+  if (refs.colorPickerHue) {
+    refs.colorPickerHue.value = String(hue);
+  }
+
+  if (refs.colorPickerSvThumb) {
+    refs.colorPickerSvThumb.style.left = `${hsb.s}%`;
+    refs.colorPickerSvThumb.style.top = `${100 - hsb.b}%`;
+  }
+
+  const isHexModel = state.colorPickerModel === "hex";
+  const isHsbModel = state.colorPickerModel === "hsb";
+  const isHslModel = state.colorPickerModel === "hsl";
+  const labels = isHexModel ? ["HEX", "", ""] : isHsbModel ? ["H", "S", "B"] : isHslModel ? ["H", "S", "L"] : ["R", "G", "B"];
+  const values = isHexModel
+    ? [state.anchorHex.replace(/^#/, ""), "", ""]
+    : isHsbModel
+      ? [hsb.h, hsb.s, hsb.b]
+      : isHslModel
+        ? [hsl.h, hsl.s, hsl.l]
+        : Object.values(rgbTo255(rgb));
+
+  [refs.colorPickerChannelLabel1, refs.colorPickerChannelLabel2, refs.colorPickerChannelLabel3].forEach((label, index) => {
+    if (label) label.textContent = labels[index];
+  });
+
+  const channelInputs = [refs.colorPickerChannel1, refs.colorPickerChannel2, refs.colorPickerChannel3];
+  const channelFields = channelInputs.map((input) => input?.closest(".color-picker-channel"));
+
+  refs.colorPickerChannelGrid?.classList.toggle("is-hex-mode", isHexModel);
+
+  channelFields.forEach((field, index) => {
+    if (!field) return;
+    field.hidden = false;
+    field.style.display = "";
+  });
+
+  channelInputs.forEach((input, index) => {
+    if (!input) return;
+
+    if (isHexModel) {
+      input.type = "text";
+      input.inputMode = "text";
+      input.autocomplete = "off";
+      input.spellcheck = false;
+      input.removeAttribute("min");
+      input.removeAttribute("max");
+      input.removeAttribute("step");
+      if (index === 0) {
+        input.maxLength = 6;
+      } else {
+        input.removeAttribute("maxLength");
+      }
+      input.disabled = isHexModel && index > 0;
+      input.value = String(values[index]);
+      return;
+    }
+
+    input.type = "number";
+    input.inputMode = "numeric";
+    input.removeAttribute("maxLength");
+    input.min = "0";
+    input.max = isHsbModel || isHslModel ? (index === 0 ? "360" : "100") : "255";
+    input.disabled = false;
+    input.value = String(values[index]);
+  });
+
+  document.querySelectorAll("[data-color-model]").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.colorModel === state.colorPickerModel);
+  });
+}
+
+function focusColorPickerHexInput() {
+  if (!refs.colorPickerChannel1) return;
+  window.setTimeout(() => {
+    refs.colorPickerChannel1?.focus();
+    refs.colorPickerChannel1?.select?.();
+  }, 0);
+}
+
+function restoreColorPickerValueIfNeeded() {
+  if (state.colorPickerModel !== "hex" || !refs.colorPickerChannel1) return;
+  const nextHex = normalizeHex(refs.colorPickerChannel1.value ?? "");
+  if (nextHex) return;
+  syncColorPopover();
+}
+
+function setColorPopoverOpen(nextOpen) {
+  colorPopoverOpen = Boolean(nextOpen);
+  if (!refs.anchorColorPopover) return;
+  refs.anchorColorPopover.hidden = !colorPopoverOpen;
+  if (colorPopoverOpen) {
+    state.colorPickerModel = "hex";
+    syncColorPopover();
+    focusColorPickerHexInput();
+  }
+}
+
+function applyPickerHsb(nextHsb) {
+  const rgb = hsbToRgb(nextHsb);
+  state.colorPickerHue = nextHsb.h;
+  applyAnchor(state.anchorIndex, rgbToHex(rgb));
+}
+
+function updatePickerSvFromPointer(clientX, clientY) {
+  if (!refs.colorPickerSv) return;
+  const rect = refs.colorPickerSv.getBoundingClientRect();
+  const x = clamp((clientX - rect.left) / rect.width, 0, 1);
+  const y = clamp((clientY - rect.top) / rect.height, 0, 1);
+  const current = rgbToHsb(hexToRgb(state.anchorHex));
+  applyPickerHsb({
+    h: state.colorPickerHue,
+    s: Math.round(x * 100),
+    b: Math.round((1 - y) * 100),
+  });
+}
+
+function applyPickerChannelInputs() {
+  if (state.colorPickerModel === "hex") {
+    const nextHex = normalizeHex(refs.colorPickerChannel1?.value ?? "");
+    if (!nextHex) return;
+    applyAnchor(state.anchorIndex, nextHex);
+    return;
+  }
+
+  const values = [refs.colorPickerChannel1, refs.colorPickerChannel2, refs.colorPickerChannel3].map((input) =>
+    Number.parseFloat(input?.value ?? "0"),
+  );
+
+  if (values.some((value) => Number.isNaN(value))) return;
+
+  if (state.colorPickerModel === "hsb") {
+    applyPickerHsb({
+      h: clamp(values[0], 0, 360),
+      s: clamp(values[1], 0, 100),
+      b: clamp(values[2], 0, 100),
+    });
+    return;
+  }
+
+  if (state.colorPickerModel === "hsl") {
+    applyAnchor(
+      state.anchorIndex,
+      rgbToHex(
+        hslToRgb({
+          h: clamp(values[0], 0, 360),
+          s: clamp(values[1], 0, 100),
+          l: clamp(values[2], 0, 100),
+        }),
+      ),
+    );
+    return;
+  }
+
+  applyAnchor(
+    state.anchorIndex,
+    rgbToHex({
+      r: clamp(values[0], 0, 255) / 255,
+      g: clamp(values[1], 0, 255) / 255,
+      b: clamp(values[2], 0, 255) / 255,
+    }),
+  );
+}
+
+function setAnchorMenuOpen(nextOpen) {
+  anchorMenuOpen = Boolean(nextOpen);
+  refs.anchorSelectTrigger?.setAttribute("aria-expanded", String(anchorMenuOpen));
+  refs.anchorSelectMenu?.parentElement?.classList.toggle("is-open", anchorMenuOpen);
 }
 
 function syncAnchorHexWidth(value) {
@@ -656,30 +1178,155 @@ function syncAnchorStepObserver() {
 function renderPreviewShowcase(palette) {
   if (!refs.previewStage) return;
 
+  const previewScenes = {
+    app: {
+      badge: "APP / 移动应用",
+      heading: "看这组颜色放进移动应用后，按钮、标签和卡片是否协调",
+      description: "适合看工具类、效率类、会员类 APP 的常见落位。重点判断主按钮够不够稳、功能标签会不会发灰、深色卡片还能不能清楚。",
+      primaryAction: "开通会员",
+      secondaryAction: "稍后再看",
+      status: "移动应用场景",
+      sceneTab: "Member Center",
+      sceneKicker: "APP 首页",
+      sceneTitle: "会员权益、功能标签和主按钮的真实落位",
+      sceneDescription: "模拟应用首页里最常用的几个角色：主 CTA、标签、权益卡片和深色信息块，看它能不能直接用在产品界面里。",
+      scenePrimaryAction: "立即开通",
+      sceneSecondaryAction: "查看权益",
+      accentLabel: "主强调色",
+      deepLabel: "深色卡片",
+      deepTitle: "夜间信息块",
+      metrics: [
+        { label: "主按钮", note: "主操作是否足够稳定抓眼", role: "accent" },
+        { label: "次级按钮", note: "弱一级操作是否仍然清晰", role: "soft" },
+        { label: "功能标签", note: "轻量信息是否还能被看见", role: "tag" },
+        { label: "深色卡片", note: "深背景里的文字是否清楚", role: "deepInfo" },
+      ],
+      chips: [
+        { label: "会员标签", role: "tag" },
+        { label: "浅底高亮", role: "second" },
+        { label: "状态提醒", role: "accentNext" },
+      ],
+    },
+    site: {
+      badge: "Site / 网站页面",
+      heading: "看这组颜色进入网站页面后，首屏 CTA、说明标签和内容分区是否顺畅",
+      description: "适合看官网、活动页、产品介绍站点的常见落位。重点判断品牌感够不够、浅底模块会不会脏、CTA 按钮是否有转化感。",
+      primaryAction: "立即预约",
+      secondaryAction: "浏览案例",
+      status: "网站页面场景",
+      sceneTab: "Landing Hero",
+      sceneKicker: "SITE 首屏",
+      sceneTitle: "首屏 CTA、说明标签和内容分区的真实落位",
+      sceneDescription: "模拟官网首屏里最常见的几个角色：主 CTA、浅底信息区、说明标签和深色内容模块，看它适不适合用来做品牌站。",
+      scenePrimaryAction: "立即咨询",
+      sceneSecondaryAction: "查看案例",
+      accentLabel: "主 CTA",
+      deepLabel: "深色内容区",
+      deepTitle: "长内容模块",
+      metrics: [
+        { label: "主 CTA", note: "首屏转化按钮是否够抓眼", role: "accent" },
+        { label: "浅底区块", note: "大面积浅底是否干净稳定", role: "first" },
+        { label: "说明标签", note: "重点信息是否有记忆点", role: "tag" },
+        { label: "深色模块", note: "长文内容区是否还舒服", role: "deepInfo" },
+      ],
+      chips: [
+        { label: "导航高亮", role: "tag" },
+        { label: "信息分区", role: "soft" },
+        { label: "辅助标签", role: "accentNext" },
+      ],
+    },
+  };
+
+  const scene = previewScenes[state.previewScene] ?? previewScenes.app;
   const first = palette[0]?.hex ?? "#FFFFFF";
+  const second = palette[Math.min(1, palette.length - 1)]?.hex ?? first;
+  const soft = palette[Math.max(Math.min(state.anchorIndex - 2, palette.length - 1), 0)]?.hex ?? second;
+  const tag = palette[Math.max(Math.floor((palette.length - 1) / 3), 0)]?.hex ?? soft;
   const nearDark = palette[Math.max(palette.length - 2, 0)]?.hex ?? "#111111";
   const darkest = palette[palette.length - 1]?.hex ?? nearDark;
   const accent = palette[state.anchorIndex]?.hex ?? state.anchorHex;
   const accentNext = palette[Math.min(state.anchorIndex + 1, palette.length - 1)]?.hex ?? accent;
+  const deepInfo = palette[Math.min(state.anchorIndex + 3, palette.length - 1)]?.hex ?? darkest;
+
+  const sceneRoleMap = {
+    first,
+    second,
+    soft,
+    tag,
+    accent,
+    accentNext,
+    deepInfo,
+  };
+
+  if (refs.previewBadge) refs.previewBadge.textContent = scene.badge;
+  if (refs.previewHeading) refs.previewHeading.textContent = scene.heading;
+  if (refs.previewDescription) refs.previewDescription.textContent = scene.description;
+  if (refs.previewPrimaryAction) refs.previewPrimaryAction.textContent = scene.primaryAction;
+  if (refs.previewSecondaryAction) refs.previewSecondaryAction.textContent = scene.secondaryAction;
+  if (refs.previewStatus) refs.previewStatus.textContent = scene.status;
+  if (refs.previewSceneTab) refs.previewSceneTab.textContent = scene.sceneTab;
+  if (refs.previewSceneKicker) refs.previewSceneKicker.textContent = scene.sceneKicker;
+  if (refs.previewSceneTitle) refs.previewSceneTitle.textContent = scene.sceneTitle;
+  if (refs.previewSceneDescription) refs.previewSceneDescription.textContent = scene.sceneDescription;
+  if (refs.previewScenePrimaryAction) refs.previewScenePrimaryAction.textContent = scene.scenePrimaryAction;
+  if (refs.previewSceneSecondaryAction) refs.previewSceneSecondaryAction.textContent = scene.sceneSecondaryAction;
+  if (refs.previewAccentLabel) refs.previewAccentLabel.textContent = scene.accentLabel;
+  if (refs.previewDeepLabel) refs.previewDeepLabel.textContent = scene.deepLabel;
+  if (refs.previewDeepTitle) refs.previewDeepTitle.textContent = scene.deepTitle;
+
+  if (refs.previewAnchorName) {
+    refs.previewAnchorName.textContent = `color-${state.anchorIndex + 1}`;
+  }
+
+  if (refs.previewAnchorValue) {
+    refs.previewAnchorValue.textContent = formatDisplayValue(accent);
+  }
+
+  if (refs.previewDeepValue) {
+    refs.previewDeepValue.textContent = formatDisplayValue(deepInfo);
+  }
 
   if (refs.previewMetricList) {
-    const placements = [
-      { label: `当前锚点 color-${state.anchorIndex + 1}`, value: formatDisplayValue(accent) },
-      { label: "浅底强调", value: formatDisplayValue(first) },
-      {
-        label: "状态标签",
-        value: formatDisplayValue(palette[Math.max(Math.floor((palette.length - 1) / 3), 0)]?.hex ?? accent),
-      },
-      { label: "深色文字", value: formatDisplayValue(darkest) },
-    ];
+    const placements = scene.metrics.map((item) => {
+      const hex = sceneRoleMap[item.role] ?? accent;
+      return {
+        ...item,
+        hex,
+        value: formatDisplayValue(hex),
+      };
+    });
 
     refs.previewMetricList.innerHTML = placements
       .map(
         (item) => `
           <div class="preview-metric-item">
-            <span class="preview-metric-name">${item.label}</span>
+            <span class="preview-metric-swatch" style="--preview-metric-swatch:${item.hex}; --preview-metric-ink:${pickReadableText(item.hex)}"></span>
+            <div class="preview-metric-copy">
+              <span class="preview-metric-name">${item.label}</span>
+              <span class="preview-metric-note">${item.note}</span>
+            </div>
             <span class="preview-metric-value">${item.value}</span>
           </div>
+        `,
+      )
+      .join("");
+  }
+
+  if (refs.previewChipRow) {
+    const chips = scene.chips.map((chip) => ({
+      label: chip.label,
+      hex: sceneRoleMap[chip.role] ?? accentNext,
+    }));
+
+    refs.previewChipRow.innerHTML = chips
+      .map(
+        (chip) => `
+          <span
+            class="preview-chip"
+            style="--preview-chip-bg:${chip.hex}; --preview-chip-ink:${pickReadableText(chip.hex)}"
+          >
+            ${chip.label}
+          </span>
         `,
       )
       .join("");
@@ -691,12 +1338,24 @@ function renderPreviewShowcase(palette) {
     refs.previewStage.style.setProperty("--preview-accent", accent);
     refs.previewStage.style.setProperty("--preview-accent-2", accentNext);
     refs.previewStage.style.setProperty("--preview-accent-ink", pickReadableText(accent));
+    refs.previewStage.style.setProperty("--preview-surface", first);
+    refs.previewStage.style.setProperty("--preview-surface-soft", second);
+    refs.previewStage.style.setProperty("--preview-surface-secondary", soft);
+    refs.previewStage.style.setProperty("--preview-surface-deep", deepInfo);
+    refs.previewStage.style.setProperty("--preview-surface-deep-ink", pickReadableText(deepInfo));
+    refs.previewStage.style.setProperty("--preview-outline", "rgba(20, 20, 20, 0.08)");
   } else {
     refs.previewStage.style.setProperty("--preview-ink", first);
     refs.previewStage.style.setProperty("--preview-muted", "rgba(255, 255, 255, 0.6)");
     refs.previewStage.style.setProperty("--preview-accent", accentNext);
     refs.previewStage.style.setProperty("--preview-accent-2", accent);
     refs.previewStage.style.setProperty("--preview-accent-ink", pickReadableText(accentNext));
+    refs.previewStage.style.setProperty("--preview-surface", nearDark);
+    refs.previewStage.style.setProperty("--preview-surface-soft", accent);
+    refs.previewStage.style.setProperty("--preview-surface-secondary", tag);
+    refs.previewStage.style.setProperty("--preview-surface-deep", darkest);
+    refs.previewStage.style.setProperty("--preview-surface-deep-ink", pickReadableText(darkest));
+    refs.previewStage.style.setProperty("--preview-outline", "rgba(255, 255, 255, 0.08)");
   }
 }
 
@@ -738,6 +1397,7 @@ function render() {
   updateAnchorOptions();
   setModeState(state.mode);
   setPreviewFormatState(state.previewFormat);
+  setPreviewSceneState(state.previewScene);
   syncInputs();
 
   const palette = buildPalette(state.anchorHex, state.anchorIndex, state.count, state.mode);
@@ -770,6 +1430,10 @@ function render() {
 function applyAnchor(index, nextHex) {
   const normalized = formatHex(nextHex);
   if (!normalized) return;
+  const nextHsb = rgbToHsb(hexToRgb(normalized));
+  if (nextHsb.s > 0) {
+    state.colorPickerHue = nextHsb.h;
+  }
   state.anchorIndex = clamp(index, 0, state.count - 1);
   state.anchorHex = normalized;
   render();
@@ -928,18 +1592,82 @@ refs.countDecreaseBtn.addEventListener("click", () => {
   refs.countDecreaseBtn.blur();
 });
 
-refs.anchorSelect.addEventListener("change", (event) => {
-  state.anchorIndex = Number(event.target.value);
+refs.anchorSelectTrigger?.addEventListener("click", () => {
+  setAnchorMenuOpen(!anchorMenuOpen);
+});
+
+refs.anchorSelectMenu?.addEventListener("click", (event) => {
+  const option = event.target.closest("[data-anchor-option]");
+  if (!option) return;
+  state.anchorIndex = Number(option.dataset.anchorOption);
+  setAnchorMenuOpen(false);
   render();
 });
 
 refs.anchorColorTrigger.addEventListener("click", () => {
   hideTooltip(refs.anchorColorTrigger);
-  refs.anchorColorPicker.click();
+  setColorPopoverOpen(!colorPopoverOpen);
 });
 
 refs.anchorColorPicker.addEventListener("input", (event) => {
   applyAnchor(state.anchorIndex, event.target.value);
+});
+
+refs.colorPickerHue?.addEventListener("input", (event) => {
+  const current = rgbToHsb(hexToRgb(state.anchorHex));
+  applyPickerHsb({
+    h: Number(event.target.value),
+    s: current.s,
+    b: current.b,
+  });
+});
+
+refs.colorPickerSv?.addEventListener("pointerdown", (event) => {
+  colorPickerDraggingSv = true;
+  updatePickerSvFromPointer(event.clientX, event.clientY);
+});
+
+window.addEventListener("pointermove", (event) => {
+  if (!colorPickerDraggingSv) return;
+  updatePickerSvFromPointer(event.clientX, event.clientY);
+});
+
+window.addEventListener("pointerup", () => {
+  colorPickerDraggingSv = false;
+});
+
+document.querySelector(".color-picker-model-toggle")?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-color-model]");
+  if (!button) return;
+  state.colorPickerModel = button.dataset.colorModel;
+  syncColorPopover();
+});
+
+[refs.colorPickerChannel1, refs.colorPickerChannel2, refs.colorPickerChannel3].forEach((input) => {
+  input?.addEventListener("change", applyPickerChannelInputs);
+});
+
+refs.colorPickerEyeDropper?.addEventListener("click", async () => {
+  if ("EyeDropper" in window) {
+    try {
+      const eyeDropper = new EyeDropper();
+      const result = await eyeDropper.open();
+      applyAnchor(state.anchorIndex, result.sRGBHex);
+      return;
+    } catch {
+      return;
+    }
+  }
+
+  refs.anchorColorPicker.click();
+});
+
+refs.anchorColorPopover?.addEventListener("click", (event) => {
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+  const interactiveTarget = target.closest("input, button, label, .color-picker-sv, .color-picker-tools");
+  if (interactiveTarget) return;
+  restoreColorPickerValueIfNeeded();
 });
 
 refs.anchorHexInput.addEventListener("input", (event) => {
@@ -967,6 +1695,29 @@ refs.shuffleBtn.addEventListener("click", () => {
   applyAnchor(state.anchorIndex, next);
 });
 
+document.addEventListener("click", (event) => {
+  if (!anchorMenuOpen) return;
+  if (refs.anchorSelectMenu?.parentElement?.contains(event.target)) return;
+  setAnchorMenuOpen(false);
+});
+
+document.addEventListener("click", (event) => {
+  if (!colorPopoverOpen) return;
+  if (refs.anchorColorPopover?.contains(event.target) || refs.anchorColorTrigger?.contains(event.target)) return;
+  setColorPopoverOpen(false);
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && anchorMenuOpen) {
+    setAnchorMenuOpen(false);
+    refs.anchorSelectTrigger?.focus();
+  }
+  if (event.key === "Escape" && colorPopoverOpen) {
+    setColorPopoverOpen(false);
+    refs.anchorColorTrigger?.focus();
+  }
+});
+
 bindScaleBandInteractions(refs.scaleBand);
 bindScaleBandInteractions(refs.neutralScaleBand);
 
@@ -975,6 +1726,15 @@ if (refs.previewFormatToggle) {
     const button = event.target.closest("[data-format]");
     if (!button) return;
     state.previewFormat = button.dataset.format;
+    render();
+  });
+}
+
+if (refs.previewSceneToggle) {
+  refs.previewSceneToggle.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-scene]");
+    if (!button) return;
+    state.previewScene = button.dataset.scene;
     render();
   });
 }
@@ -997,6 +1757,7 @@ function scheduleScrollEffects() {
 
 window.addEventListener("resize", () => {
   syncHeroResizeMotion();
+  syncScaleIndicatorResizeMotion();
   syncViewportScrollbarWidth();
   syncHeroCardFrame();
   syncHeroReserve();
