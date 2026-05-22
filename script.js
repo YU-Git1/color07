@@ -4,6 +4,7 @@ const state = {
   anchorIndex: 5,
   anchorHex: "#0BBBD6",
   palette: [],
+  exportFormat: "design",
   previewFormat: "hex",
   previewScene: "app",
   colorPickerModel: "rgb",
@@ -53,26 +54,10 @@ const refs = {
   previewStage: document.getElementById("previewStage"),
   previewFormatToggle: document.getElementById("previewFormatToggle"),
   previewSceneToggle: document.getElementById("previewSceneToggle"),
-  previewBadge: document.getElementById("previewBadge"),
-  previewHeading: document.getElementById("previewHeading"),
-  previewDescription: document.getElementById("previewDescription"),
-  previewPrimaryAction: document.getElementById("previewPrimaryAction"),
-  previewSecondaryAction: document.getElementById("previewSecondaryAction"),
-  previewStatus: document.getElementById("previewStatus"),
-  previewMetricList: document.getElementById("previewMetricList"),
-  previewSceneTab: document.getElementById("previewSceneTab"),
-  previewSceneKicker: document.getElementById("previewSceneKicker"),
-  previewSceneTitle: document.getElementById("previewSceneTitle"),
-  previewSceneDescription: document.getElementById("previewSceneDescription"),
-  previewScenePrimaryAction: document.getElementById("previewScenePrimaryAction"),
-  previewSceneSecondaryAction: document.getElementById("previewSceneSecondaryAction"),
-  previewAccentLabel: document.getElementById("previewAccentLabel"),
-  previewAnchorName: document.getElementById("previewAnchorName"),
-  previewAnchorValue: document.getElementById("previewAnchorValue"),
-  previewChipRow: document.getElementById("previewChipRow"),
-  previewDeepLabel: document.getElementById("previewDeepLabel"),
-  previewDeepTitle: document.getElementById("previewDeepTitle"),
-  previewDeepValue: document.getElementById("previewDeepValue"),
+  previewSystemCanvas: document.getElementById("previewSystemCanvas"),
+  exportFormatToggle: document.getElementById("exportFormatToggle"),
+  exportFormatNote: document.getElementById("exportFormatNote"),
+  exportMetaLabel: document.getElementById("exportMetaLabel"),
   exportMeta: document.getElementById("exportMeta"),
   tokensPreview: document.getElementById("tokensPreview"),
   tokensOutput: document.getElementById("tokensOutput"),
@@ -252,6 +237,19 @@ function hexToRgb(hex) {
 
 function rgbToHex({ r, g, b }) {
   return `#${componentToHex(r)}${componentToHex(g)}${componentToHex(b)}`.toUpperCase();
+}
+
+function blendHex(startHex, endHex, amount) {
+  const start = hexToRgb(startHex);
+  const end = hexToRgb(endHex);
+  if (!start || !end) return formatHex(startHex) ?? startHex;
+
+  const weight = clamp(amount, 0, 1);
+  return rgbToHex({
+    r: lerp(start.r, end.r, weight),
+    g: lerp(start.g, end.g, weight),
+    b: lerp(start.b, end.b, weight),
+  });
 }
 
 function rgbTo255({ r, g, b }) {
@@ -541,26 +539,26 @@ function buildBlueprint(count, mode) {
     const t = count === 1 ? 0 : index / (count - 1);
 
     if (mode === "light") {
-      const eased = Math.pow(t, 0.82);
-      const tail = Math.pow(t, 3.1) * 0.11;
-      const l = clamp(0.988 - 0.69 * eased - tail, 0.1, 0.988);
+      const eased = Math.pow(t, 0.84);
+      const tail = Math.pow(t, 3.6) * 0.075;
+      const l = clamp(0.985 - 0.73 * eased - tail, 0.11, 0.985);
       const cWeight = clamp(
-        0.22 +
-          1.06 * Math.pow(Math.sin(Math.PI * Math.pow(t, 0.9)), 0.88) -
-          Math.max(0, t - 0.82) * 0.26,
+        0.24 +
+          1.02 * Math.pow(Math.sin(Math.PI * Math.pow(t, 0.92)), 0.9) -
+          Math.max(0, t - 0.84) * 0.3,
         0.14,
         1.12,
       );
       return { l, cWeight };
     }
 
-    const eased = Math.pow(t, 0.9);
-    const lift = Math.pow(1 - t, 3) * 0.025;
-    const l = clamp(0.082 + 0.74 * eased + 0.12 * Math.pow(t, 2.25) + lift, 0.065, 0.968);
+    const eased = Math.pow(t, 0.88);
+    const lift = Math.pow(1 - t, 3.2) * 0.03;
+    const l = clamp(0.09 + 0.81 * eased + lift, 0.07, 0.965);
     const cWeight = clamp(
-      0.18 +
-        0.98 * Math.pow(Math.sin(Math.PI * Math.pow(t, 0.96)), 0.84) -
-        Math.max(0, t - 0.86) * 0.2,
+      0.2 +
+        0.96 * Math.pow(Math.sin(Math.PI * Math.pow(t, 0.94)), 0.82) -
+        Math.max(0, t - 0.88) * 0.22,
       0.14,
       1.08,
     );
@@ -674,57 +672,38 @@ function buildPalette(anchorHex, anchorIndex, count, mode) {
   const anchorWeight = blueprint[anchorIndex]?.cWeight ?? 1;
   const brighterDeltas = lightnessProfile.filter((value) => value > anchorTarget).map((value) => value - anchorTarget);
   const deeperDeltas = lightnessProfile.filter((value) => value < anchorTarget).map((value) => value - anchorTarget);
-  const { upper: upperLimit, lower: lowerLimit } = getAdaptiveLightnessLimits(anchorOklch, mode);
+  const upperLimit = mode === "light" ? 0.985 : 0.965;
+  const lowerLimit = mode === "light" ? 0.11 : 0.07;
   const maxBrighterDelta = brighterDeltas.length ? Math.max(...brighterDeltas, 0) : 0;
   const maxDeeperDelta = deeperDeltas.length ? Math.min(...deeperDeltas, 0) : 0;
   const lightenScale = maxBrighterDelta > 0 ? Math.min(1, (upperLimit - anchorOklch.l) / maxBrighterDelta) : 1;
   const darkenScale = maxDeeperDelta < 0 ? Math.min(1, (anchorOklch.l - lowerLimit) / Math.abs(maxDeeperDelta)) : 1;
 
-  const rawSteps = blueprint.map((step, index) => {
+  return blueprint.map((step, index) => {
     if (index === anchorIndex) {
-      return {
-        index,
-        l: anchorOklch.l,
-        c: anchorOklch.c,
-        h: anchorOklch.h,
-        isAnchor: true,
-      };
+      return { index, hex: formatHex(anchorHex), oklch: anchorOklch };
     }
 
     const delta = step.l - anchorTarget;
     const scaledL = anchorOklch.l + delta * (delta > 0 ? lightenScale : darkenScale);
     const stepDistance = Math.abs(index - anchorIndex) / Math.max(count - 1, 1);
-    const hue = getAdaptiveHue(anchorOklch.h, stepDistance, delta, anchorOklch.c);
-    const chroma = getAdaptiveStepChroma({
-      anchorOklch,
-      anchorWeight,
-      stepWeight: step.cWeight,
-      scaledL,
-      distance: stepDistance,
-      delta,
-      mode,
-    });
-    return {
-      index,
+    const relativeWeight = Math.pow((step.cWeight + 0.08) / (anchorWeight + 0.08), 0.88);
+    const fadeByDistance = 1 - Math.pow(stepDistance, 1.18) * 0.2;
+    const fadeForBrights = scaledL > 0.9 ? 1 - (scaledL - 0.9) * 3.8 : 1;
+    const fadeForShadows = scaledL < 0.16 ? 1 - (0.16 - scaledL) * 1.8 : 1;
+    const modeBias = mode === "light" ? 1 : 0.94;
+    const chroma = clamp(
+      anchorOklch.c * relativeWeight * fadeByDistance * fadeForBrights * fadeForShadows * modeBias,
+      0,
+      0.34,
+    );
+    const hex = fitOklchToHex({
       l: clamp(scaledL, lowerLimit, upperLimit),
       c: chroma,
-      h: hue,
-      isAnchor: false,
-    };
-  });
-
-  return smoothStepProfiles(rawSteps, anchorIndex).map((step) => {
-    if (step.isAnchor) {
-      return { index: step.index, hex: formatHex(anchorHex), oklch: anchorOklch };
-    }
-
-    const hex = fitOklchToHex({
-      l: step.l,
-      c: step.c,
-      h: step.h,
+      h: anchorOklch.h,
     });
 
-    return { index: step.index, hex };
+    return { index, hex };
   });
 }
 
@@ -745,6 +724,59 @@ function buildVariableLines(palette, prefix) {
 
 function buildTokens(palette, neutralPalette) {
   return [":root {", buildVariableLines(palette, "color"), "", buildVariableLines(neutralPalette, "gray"), "}"].join("\n");
+}
+
+function buildDesignSummary(palette, neutralPalette) {
+  const colorLines = palette.map((step) => `${buildStepName("color", step.index)}  ${step.hex}`);
+  const grayLines = neutralPalette.map((step) => `${buildStepName("gray", step.index)}   ${step.hex}`);
+  return [
+    "色阶清单",
+    `当前参考：color-${state.anchorIndex + 1} / ${state.count} 阶`,
+    "",
+    "彩色色阶",
+    ...colorLines,
+    "",
+    "中性色阶",
+    ...grayLines,
+  ].join("\n");
+}
+
+function buildJsonTokens(palette, neutralPalette) {
+  const toGroup = (items, prefix) =>
+    Object.fromEntries(items.map((step) => [buildStepName(prefix, step.index), step.hex]));
+
+  return JSON.stringify(
+    {
+      meta: {
+        anchor: buildStepName("color", state.anchorIndex),
+        count: state.count,
+      },
+      color: toGroup(palette, "color"),
+      gray: toGroup(neutralPalette, "gray"),
+    },
+    null,
+    2,
+  );
+}
+
+function getExportPayloads(palette, neutralPalette) {
+  return {
+    design: {
+      label: "设计清单",
+      note: "最适合先自己看，或直接发给设计师确认色阶。",
+      text: buildDesignSummary(palette, neutralPalette),
+    },
+    css: {
+      label: "CSS 变量",
+      note: "复制进样式文件后，前端可以直接按变量名接入。",
+      text: buildTokens(palette, neutralPalette),
+    },
+    json: {
+      label: "JSON 对象",
+      note: "适合继续喂给插件、脚本或 AI 工具做下一步处理。",
+      text: buildJsonTokens(palette, neutralPalette),
+    },
+  };
 }
 
 function buildStepName(prefix, index) {
@@ -800,6 +832,15 @@ function setPreviewSceneState(value) {
   });
 }
 
+function setExportFormatState(value) {
+  if (!refs.exportFormatToggle) return;
+  refs.exportFormatToggle.querySelectorAll("[data-export-format]").forEach((button) => {
+    const isActive = button.dataset.exportFormat === value;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-selected", String(isActive));
+  });
+}
+
 function ensureTooltip() {
   if (refs.tooltip) return refs.tooltip;
   const tooltip = document.createElement("div");
@@ -846,7 +887,39 @@ function hideTooltip(target) {
   refs.tooltipTarget = null;
 }
 
-function showGlobalMessage(text, tone = "success") {
+function positionGlobalMessage(anchor) {
+  const message = refs.message;
+  if (!message) return;
+
+  const viewportPadding = 12;
+  const gap = 10;
+  const messageRect = message.getBoundingClientRect();
+  const anchorRect = anchor?.getBoundingClientRect?.();
+
+  let left = Math.round((window.innerWidth - messageRect.width) / 2);
+  let top = 24;
+  let isBelow = false;
+
+  if (anchorRect) {
+    left = clamp(
+      anchorRect.left + anchorRect.width / 2 - messageRect.width / 2,
+      viewportPadding,
+      window.innerWidth - messageRect.width - viewportPadding,
+    );
+    top = anchorRect.top - messageRect.height - gap;
+
+    if (top < viewportPadding) {
+      top = Math.min(anchorRect.bottom + gap, window.innerHeight - messageRect.height - viewportPadding);
+      isBelow = true;
+    }
+  }
+
+  message.style.left = `${Math.round(left)}px`;
+  message.style.top = `${Math.round(top)}px`;
+  message.classList.toggle("is-below", isBelow);
+}
+
+function showGlobalMessage(text, tone = "success", anchor = null) {
   const message = ensureMessage();
   const icon = refs.messageIcon;
   const textNode = refs.messageText;
@@ -862,8 +935,11 @@ function showGlobalMessage(text, tone = "success") {
 
   icon.textContent = tone === "error" ? "!" : "✓";
   textNode.textContent = text;
+  refs.messageAnchor = anchor instanceof Element ? anchor : null;
+  positionGlobalMessage(refs.messageAnchor);
 
   window.requestAnimationFrame(() => {
+    positionGlobalMessage(refs.messageAnchor);
     message.classList.add("is-visible");
   });
 
@@ -1178,66 +1254,6 @@ function syncAnchorStepObserver() {
 function renderPreviewShowcase(palette) {
   if (!refs.previewStage) return;
 
-  const previewScenes = {
-    app: {
-      badge: "APP / 移动应用",
-      heading: "看这组颜色放进移动应用后，按钮、标签和卡片是否协调",
-      description: "适合看工具类、效率类、会员类 APP 的常见落位。重点判断主按钮够不够稳、功能标签会不会发灰、深色卡片还能不能清楚。",
-      primaryAction: "开通会员",
-      secondaryAction: "稍后再看",
-      status: "移动应用场景",
-      sceneTab: "Member Center",
-      sceneKicker: "APP 首页",
-      sceneTitle: "会员权益、功能标签和主按钮的真实落位",
-      sceneDescription: "模拟应用首页里最常用的几个角色：主 CTA、标签、权益卡片和深色信息块，看它能不能直接用在产品界面里。",
-      scenePrimaryAction: "立即开通",
-      sceneSecondaryAction: "查看权益",
-      accentLabel: "主强调色",
-      deepLabel: "深色卡片",
-      deepTitle: "夜间信息块",
-      metrics: [
-        { label: "主按钮", note: "主操作是否足够稳定抓眼", role: "accent" },
-        { label: "次级按钮", note: "弱一级操作是否仍然清晰", role: "soft" },
-        { label: "功能标签", note: "轻量信息是否还能被看见", role: "tag" },
-        { label: "深色卡片", note: "深背景里的文字是否清楚", role: "deepInfo" },
-      ],
-      chips: [
-        { label: "会员标签", role: "tag" },
-        { label: "浅底高亮", role: "second" },
-        { label: "状态提醒", role: "accentNext" },
-      ],
-    },
-    site: {
-      badge: "Site / 网站页面",
-      heading: "看这组颜色进入网站页面后，首屏 CTA、说明标签和内容分区是否顺畅",
-      description: "适合看官网、活动页、产品介绍站点的常见落位。重点判断品牌感够不够、浅底模块会不会脏、CTA 按钮是否有转化感。",
-      primaryAction: "立即预约",
-      secondaryAction: "浏览案例",
-      status: "网站页面场景",
-      sceneTab: "Landing Hero",
-      sceneKicker: "SITE 首屏",
-      sceneTitle: "首屏 CTA、说明标签和内容分区的真实落位",
-      sceneDescription: "模拟官网首屏里最常见的几个角色：主 CTA、浅底信息区、说明标签和深色内容模块，看它适不适合用来做品牌站。",
-      scenePrimaryAction: "立即咨询",
-      sceneSecondaryAction: "查看案例",
-      accentLabel: "主 CTA",
-      deepLabel: "深色内容区",
-      deepTitle: "长内容模块",
-      metrics: [
-        { label: "主 CTA", note: "首屏转化按钮是否够抓眼", role: "accent" },
-        { label: "浅底区块", note: "大面积浅底是否干净稳定", role: "first" },
-        { label: "说明标签", note: "重点信息是否有记忆点", role: "tag" },
-        { label: "深色模块", note: "长文内容区是否还舒服", role: "deepInfo" },
-      ],
-      chips: [
-        { label: "导航高亮", role: "tag" },
-        { label: "信息分区", role: "soft" },
-        { label: "辅助标签", role: "accentNext" },
-      ],
-    },
-  };
-
-  const scene = previewScenes[state.previewScene] ?? previewScenes.app;
   const first = palette[0]?.hex ?? "#FFFFFF";
   const second = palette[Math.min(1, palette.length - 1)]?.hex ?? first;
   const soft = palette[Math.max(Math.min(state.anchorIndex - 2, palette.length - 1), 0)]?.hex ?? second;
@@ -1247,6 +1263,26 @@ function renderPreviewShowcase(palette) {
   const accent = palette[state.anchorIndex]?.hex ?? state.anchorHex;
   const accentNext = palette[Math.min(state.anchorIndex + 1, palette.length - 1)]?.hex ?? accent;
   const deepInfo = palette[Math.min(state.anchorIndex + 3, palette.length - 1)]?.hex ?? darkest;
+  const darkInk = blendHex(darkest, "#FFFFFF", 0.12);
+  const lightCardBg = blendHex(first, "#FFFFFF", 0.18);
+  const lightPanelBg = blendHex(second, "#FFFFFF", 0.14);
+  const lightPanelAlt = blendHex(soft, "#FFFFFF", 0.18);
+  const lightPanelStrong = blendHex(soft, second, 0.38);
+  const lightHeroStart = blendHex(first, "#FFFFFF", 0.18);
+  const lightHeroEnd = blendHex(second, soft, 0.34);
+  const lightControlBg = blendHex(second, "#FFFFFF", 0.18);
+  const lightTopbarBg = blendHex(first, "#FFFFFF", 0.08);
+  const darkShellBg = blendHex(first, "#020304", 0.58);
+  const darkCardBg = blendHex(second, "#050607", 0.5);
+  const darkPanelBg = blendHex(tag, darkCardBg, 0.84);
+  const darkPanelAlt = blendHex(second, darkCardBg, 0.34);
+  const darkPanelStrong = blendHex(accent, darkCardBg, 0.74);
+  const darkHeroStart = blendHex(accent, darkCardBg, 0.8);
+  const darkHeroEnd = blendHex(tag, darkCardBg, 0.7);
+  const darkControlBg = blendHex(second, darkCardBg, 0.28);
+  const darkTopbarBg = blendHex(second, darkShellBg, 0.58);
+  const darkIconBg = blendHex(accent, darkCardBg, 0.86);
+  const darkToggleOff = blendHex(darkInk, darkCardBg, 0.82);
 
   const sceneRoleMap = {
     first,
@@ -1258,78 +1294,300 @@ function renderPreviewShowcase(palette) {
     deepInfo,
   };
 
-  if (refs.previewBadge) refs.previewBadge.textContent = scene.badge;
-  if (refs.previewHeading) refs.previewHeading.textContent = scene.heading;
-  if (refs.previewDescription) refs.previewDescription.textContent = scene.description;
-  if (refs.previewPrimaryAction) refs.previewPrimaryAction.textContent = scene.primaryAction;
-  if (refs.previewSecondaryAction) refs.previewSecondaryAction.textContent = scene.secondaryAction;
-  if (refs.previewStatus) refs.previewStatus.textContent = scene.status;
-  if (refs.previewSceneTab) refs.previewSceneTab.textContent = scene.sceneTab;
-  if (refs.previewSceneKicker) refs.previewSceneKicker.textContent = scene.sceneKicker;
-  if (refs.previewSceneTitle) refs.previewSceneTitle.textContent = scene.sceneTitle;
-  if (refs.previewSceneDescription) refs.previewSceneDescription.textContent = scene.sceneDescription;
-  if (refs.previewScenePrimaryAction) refs.previewScenePrimaryAction.textContent = scene.scenePrimaryAction;
-  if (refs.previewSceneSecondaryAction) refs.previewSceneSecondaryAction.textContent = scene.sceneSecondaryAction;
-  if (refs.previewAccentLabel) refs.previewAccentLabel.textContent = scene.accentLabel;
-  if (refs.previewDeepLabel) refs.previewDeepLabel.textContent = scene.deepLabel;
-  if (refs.previewDeepTitle) refs.previewDeepTitle.textContent = scene.deepTitle;
-
-  if (refs.previewAnchorName) {
-    refs.previewAnchorName.textContent = `color-${state.anchorIndex + 1}`;
-  }
-
-  if (refs.previewAnchorValue) {
-    refs.previewAnchorValue.textContent = formatDisplayValue(accent);
-  }
-
-  if (refs.previewDeepValue) {
-    refs.previewDeepValue.textContent = formatDisplayValue(deepInfo);
-  }
-
-  if (refs.previewMetricList) {
-    const placements = scene.metrics.map((item) => {
-      const hex = sceneRoleMap[item.role] ?? accent;
-      return {
-        ...item,
-        hex,
-        value: formatDisplayValue(hex),
-      };
-    });
-
-    refs.previewMetricList.innerHTML = placements
-      .map(
-        (item) => `
-          <div class="preview-metric-item">
-            <span class="preview-metric-swatch" style="--preview-metric-swatch:${item.hex}; --preview-metric-ink:${pickReadableText(item.hex)}"></span>
-            <div class="preview-metric-copy">
-              <span class="preview-metric-name">${item.label}</span>
-              <span class="preview-metric-note">${item.note}</span>
-            </div>
-            <span class="preview-metric-value">${item.value}</span>
+  if (refs.previewSystemCanvas) {
+    const appMarkup = `
+      <div class="preview-app-demo">
+        <div class="preview-app-demo-glow preview-app-demo-glow-left"></div>
+        <div class="preview-app-demo-glow preview-app-demo-glow-right"></div>
+        <div class="preview-app-demo-shell">
+          <div class="preview-app-demo-copy">
+            <span class="preview-app-demo-kicker">Product Preview</span>
+            <h3>色阶进入真实产品后的预演效果</h3>
+            <p>这里提前看主按钮、浅底模块、深色信息区和辅助状态进入真实界面后的感觉，不用等输出后再验证。</p>
           </div>
-        `,
-      )
-      .join("");
-  }
 
-  if (refs.previewChipRow) {
-    const chips = scene.chips.map((chip) => ({
-      label: chip.label,
-      hex: sceneRoleMap[chip.role] ?? accentNext,
-    }));
+          <div class="preview-phone-strip">
+            <article class="preview-phone-card preview-phone-card-left">
+              <div class="preview-phone-status">
+                <span class="preview-phone-brand">Flydrop</span>
+                <span class="preview-phone-icon">↗</span>
+              </div>
 
-    refs.previewChipRow.innerHTML = chips
-      .map(
-        (chip) => `
-          <span
-            class="preview-chip"
-            style="--preview-chip-bg:${chip.hex}; --preview-chip-ink:${pickReadableText(chip.hex)}"
-          >
-            ${chip.label}
-          </span>
-        `,
-      )
-      .join("");
+              <div class="preview-phone-panel preview-phone-hero-card">
+                <div class="preview-profile-row">
+                  <span class="preview-avatar-chip" style="--avatar-bg:${accentNext}; --avatar-ink:${pickReadableText(accentNext)}">LS</span>
+                  <div class="preview-profile-copy">
+                    <strong>Lucas Sutopo</strong>
+                    <span>Design lead · 8 active projects</span>
+                  </div>
+                  <span class="preview-inline-chip" style="--preview-chip-bg:${accentNext}; --preview-chip-ink:${pickReadableText(accentNext)}">Pro</span>
+                </div>
+
+                <div class="preview-stat-strip">
+                  <div class="preview-stat-mini">
+                    <span>Shared today</span>
+                    <strong>24 files</strong>
+                  </div>
+                  <div class="preview-stat-mini">
+                    <span>Storage</span>
+                    <strong>82%</strong>
+                  </div>
+                </div>
+
+                <div class="preview-phone-action-row">
+                  <button type="button" class="preview-phone-action preview-phone-action-primary">Share Now</button>
+                  <button type="button" class="preview-phone-action preview-phone-action-secondary">Create Link</button>
+                </div>
+              </div>
+
+              <div class="preview-phone-panel">
+                <div class="preview-phone-section-head">
+                  <strong>Quick Collections</strong>
+                  <span>2 pinned</span>
+                </div>
+                <div class="preview-collection-grid">
+                  <div class="preview-collection-card">
+                    <strong>Brand Assets</strong>
+                    <span>32 items · updated today</span>
+                  </div>
+                  <div class="preview-collection-card">
+                    <strong>Handoff Pack</strong>
+                    <span>12 files · review ready</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="preview-phone-panel">
+                <div class="preview-phone-section-head">
+                  <strong>Latest Activities</strong>
+                  <span>View all</span>
+                </div>
+                <div class="preview-activity-list">
+                  <div class="preview-activity-item">
+                    <span class="preview-activity-dot"></span>
+                    <div class="preview-activity-copy">
+                      <strong>Landing Hero.fig</strong>
+                      <em>Ashley updated it · 2 min ago</em>
+                    </div>
+                    <span class="preview-inline-chip preview-inline-chip-soft" style="--preview-chip-bg:${soft}; --preview-chip-ink:${pickReadableText(soft)}">Review</span>
+                  </div>
+                  <div class="preview-activity-item">
+                    <span class="preview-activity-dot"></span>
+                    <div class="preview-activity-copy">
+                      <strong>Product Icons.zip</strong>
+                      <em>Greyhold shared 4 files · 14 min ago</em>
+                    </div>
+                    <span class="preview-inline-chip preview-inline-chip-soft" style="--preview-chip-bg:${tag}; --preview-chip-ink:${pickReadableText(tag)}">New</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="preview-phone-nav">
+                <span class="is-active">Home</span>
+                <span>Files</span>
+                <span>Profile</span>
+              </div>
+            </article>
+
+            <article class="preview-phone-card preview-phone-card-center">
+              <div class="preview-phone-status preview-phone-status-center">
+                <span>←</span>
+                <strong>Transfer Center</strong>
+                <span class="preview-inline-chip preview-inline-chip-soft" style="--preview-chip-bg:${soft}; --preview-chip-ink:${pickReadableText(soft)}">Live</span>
+              </div>
+
+              <div class="preview-transfer-ring">
+                <div class="preview-transfer-ring-core">
+                  <div class="preview-transfer-avatars">
+                    <span style="--avatar-bg:${soft}; --avatar-ink:${pickReadableText(soft)}">LM</span>
+                    <span style="--avatar-bg:${accent}; --avatar-ink:${pickReadableText(accent)}">FI</span>
+                    <span style="--avatar-bg:${deepInfo}; --avatar-ink:${pickReadableText(deepInfo)}">AN</span>
+                  </div>
+                  <strong>Receiving from Ashley</strong>
+                  <span>Design handoff · 4 files</span>
+                </div>
+              </div>
+
+              <div class="preview-transfer-stats">
+                <div><span>Queue</span><strong>4 files</strong></div>
+                <div><span>Received</span><strong>812 MB</strong></div>
+                <div><span>Time left</span><strong>2 min</strong></div>
+              </div>
+
+              <div class="preview-phone-panel preview-file-list-card">
+                <div class="preview-phone-section-head">
+                  <strong>Transfer Queue</strong>
+                  <span>82% synced</span>
+                </div>
+                <div class="preview-file-list">
+                  <div class="preview-file-item preview-file-item-progress">
+                    <span class="preview-file-icon">FIG</span>
+                    <div class="preview-file-copy">
+                      <strong>Landing Hero.fig</strong>
+                      <em>14.8 MB · Ashley</em>
+                      <span class="preview-file-progress"><span style="width:82%"></span></span>
+                    </div>
+                    <span class="preview-file-percent">82%</span>
+                  </div>
+                  <div class="preview-file-item preview-file-item-progress">
+                    <span class="preview-file-icon">PDF</span>
+                    <div class="preview-file-copy">
+                      <strong>QA Notes.pdf</strong>
+                      <em>3.0 MB · Product Team</em>
+                      <span class="preview-file-progress"><span style="width:54%"></span></span>
+                    </div>
+                    <span class="preview-file-percent">54%</span>
+                  </div>
+                  <div class="preview-file-item preview-file-item-progress">
+                    <span class="preview-file-icon">ZIP</span>
+                    <div class="preview-file-copy">
+                      <strong>Icons Export.zip</strong>
+                      <em>28.2 MB · Final bundle</em>
+                      <span class="preview-file-progress"><span style="width:100%"></span></span>
+                    </div>
+                    <span class="preview-file-percent">Done</span>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="preview-phone-card preview-phone-card-right">
+              <div class="preview-phone-status">
+                <div class="preview-right-brand">
+                  <strong>Flydrop</strong>
+                  <span>Nearby</span>
+                </div>
+                <span class="preview-toggle-pill is-on"></span>
+              </div>
+
+              <div class="preview-phone-panel">
+                <div class="preview-phone-section-head">
+                  <strong>Nearby Devices</strong>
+                  <span>3 active</span>
+                </div>
+                <div class="preview-radar">
+                  <div class="preview-radar-ring ring-1"></div>
+                  <div class="preview-radar-ring ring-2"></div>
+                  <div class="preview-radar-ring ring-3"></div>
+                  <span class="preview-radar-user user-center" style="--avatar-bg:${first}; --avatar-ink:${pickReadableText(first)}">ME</span>
+                  <span class="preview-radar-user user-1" style="--avatar-bg:${soft}; --avatar-ink:${pickReadableText(soft)}">A</span>
+                  <span class="preview-radar-user user-2" style="--avatar-bg:${accent}; --avatar-ink:${pickReadableText(accent)}">G</span>
+                  <span class="preview-radar-user user-3" style="--avatar-bg:${deepInfo}; --avatar-ink:${pickReadableText(deepInfo)}">R</span>
+                </div>
+                <div class="preview-device-list">
+                  <div class="preview-device-row">
+                    <div class="preview-device-copy">
+                      <strong>Ashly Nelson</strong>
+                      <em>MacBook Pro · 2 m away</em>
+                    </div>
+                    <span class="preview-inline-chip preview-inline-chip-soft" style="--preview-chip-bg:${soft}; --preview-chip-ink:${pickReadableText(soft)}">Trusted</span>
+                  </div>
+                  <div class="preview-device-row">
+                    <div class="preview-device-copy">
+                      <strong>Gofar Badman</strong>
+                      <em>iPhone 15 · ready to receive</em>
+                    </div>
+                    <span class="preview-inline-chip preview-inline-chip-soft" style="--preview-chip-bg:${tag}; --preview-chip-ink:${pickReadableText(tag)}">Nearby</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="preview-phone-nav">
+                <span>Home</span>
+                <span class="is-active">Nearby</span>
+                <span>Profile</span>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const formMarkup = `
+      <div class="preview-app-demo preview-app-demo-form">
+        <div class="preview-app-demo-glow preview-app-demo-glow-left"></div>
+        <div class="preview-app-demo-glow preview-app-demo-glow-right"></div>
+        <div class="preview-app-demo-shell">
+          <div class="preview-app-demo-copy">
+            <span class="preview-app-demo-kicker">Form Preview</span>
+            <h3>色阶进入表单和设置流程后的预演效果</h3>
+            <p>这里重点看输入框、切换器、主按钮、提示区和聊天式表单反馈是否顺畅，提前判断这组色能不能稳定落地。</p>
+          </div>
+
+          <div class="preview-phone-strip">
+            <article class="preview-phone-card">
+              <div class="preview-phone-status preview-phone-status-center">
+                <span>←</span>
+                <strong>Profile</strong>
+                <span>⋯</span>
+              </div>
+
+              <div class="preview-form-hero">
+                <span class="preview-form-hero-avatar" style="--avatar-bg:${accent}; --avatar-ink:${pickReadableText(accent)}">AL</span>
+                <strong>Andrew Jordan</strong>
+                <span>Designer / Product Team</span>
+              </div>
+
+              <div class="preview-form-list">
+                <div class="preview-form-row"><span>Full name</span><strong>Andrew Jordan</strong></div>
+                <div class="preview-form-row"><span>Email</span><strong>andrew@studio.co</strong></div>
+                <div class="preview-form-row"><span>Country</span><strong>United States</strong></div>
+                <div class="preview-form-row"><span>Language</span><strong>English</strong></div>
+              </div>
+
+              <button type="button" class="preview-phone-cta">Save Changes</button>
+            </article>
+
+            <article class="preview-phone-card preview-phone-card-center">
+              <div class="preview-phone-status preview-phone-status-center">
+                <span>←</span>
+                <strong>Notification</strong>
+                <span></span>
+              </div>
+
+              <div class="preview-settings-list">
+                <div class="preview-setting-item"><div><strong>General Notification</strong><span>Daily updates and reminders</span></div><span class="preview-toggle-pill is-on"></span></div>
+                <div class="preview-setting-item"><div><strong>Sound</strong><span>Play system sound when alert arrives</span></div><span class="preview-toggle-pill"></span></div>
+                <div class="preview-setting-item"><div><strong>Vibrate</strong><span>Mobile device vibration feedback</span></div><span class="preview-toggle-pill is-on"></span></div>
+                <div class="preview-setting-item"><div><strong>Special Offers</strong><span>Promotions and beta invitations</span></div><span class="preview-toggle-pill"></span></div>
+              </div>
+
+              <div class="preview-inline-banner">
+                <strong>Current Accent</strong>
+                <span>${formatDisplayValue(accent)} 用作主操作和开关高亮</span>
+              </div>
+            </article>
+
+            <article class="preview-phone-card">
+              <div class="preview-phone-status preview-phone-status-center">
+                <span>←</span>
+                <strong>Help Center</strong>
+                <span>⋯</span>
+              </div>
+
+              <div class="preview-chip-row preview-chip-row-form">
+                <span class="preview-chip" style="--preview-chip-bg:${soft}; --preview-chip-ink:${pickReadableText(soft)}">Refund</span>
+                <span class="preview-chip" style="--preview-chip-bg:${tag}; --preview-chip-ink:${pickReadableText(tag)}">Login</span>
+                <span class="preview-chip" style="--preview-chip-bg:${accent}; --preview-chip-ink:${pickReadableText(accent)}">Shipping</span>
+              </div>
+
+              <div class="preview-chat-list">
+                <div class="preview-chat-bubble is-incoming">Hi, we can help with your recent order. What do you need?</div>
+                <div class="preview-chat-bubble is-outgoing">I want to change the shipping address before dispatch.</div>
+                <div class="preview-chat-bubble is-incoming">Sure. Please confirm your latest city and postcode.</div>
+              </div>
+
+              <div class="preview-chat-input">
+                <span>Type your question...</span>
+                <button type="button" class="preview-chat-send">Send</button>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+    `;
+
+    refs.previewSystemCanvas.innerHTML = state.previewScene === "form" ? formMarkup : appMarkup;
   }
 
   if (state.mode === "light") {
@@ -1344,18 +1602,57 @@ function renderPreviewShowcase(palette) {
     refs.previewStage.style.setProperty("--preview-surface-deep", deepInfo);
     refs.previewStage.style.setProperty("--preview-surface-deep-ink", pickReadableText(deepInfo));
     refs.previewStage.style.setProperty("--preview-outline", "rgba(20, 20, 20, 0.08)");
+    refs.previewStage.style.setProperty("--preview-shell-bg", first);
+    refs.previewStage.style.setProperty("--preview-topbar-bg", lightTopbarBg);
+    refs.previewStage.style.setProperty("--preview-card-bg", lightCardBg);
+    refs.previewStage.style.setProperty("--preview-card-border", "rgba(20, 20, 20, 0.08)");
+    refs.previewStage.style.setProperty("--preview-card-shadow", "0 28px 60px rgba(20, 20, 20, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.6)");
+    refs.previewStage.style.setProperty("--preview-panel-bg", lightPanelBg);
+    refs.previewStage.style.setProperty("--preview-panel-bg-alt", lightPanelAlt);
+    refs.previewStage.style.setProperty("--preview-panel-strong", lightPanelStrong);
+    refs.previewStage.style.setProperty("--preview-panel-border", "rgba(20, 20, 20, 0.08)");
+    refs.previewStage.style.setProperty("--preview-panel-hero-start", lightHeroStart);
+    refs.previewStage.style.setProperty("--preview-panel-hero-end", lightHeroEnd);
+    refs.previewStage.style.setProperty("--preview-control-bg", lightControlBg);
+    refs.previewStage.style.setProperty("--preview-icon-bg", blendHex(accent, "#FFFFFF", 0.8));
+    refs.previewStage.style.setProperty("--preview-icon-ink", blendHex(darkest, "#FFFFFF", 0.12));
+    refs.previewStage.style.setProperty("--preview-toggle-off", "rgba(20, 20, 20, 0.16)");
+    refs.previewStage.style.setProperty("--preview-ring-border", "rgba(20, 20, 20, 0.1)");
+    refs.previewStage.style.setProperty("--preview-loader-track", blendHex(accent, "#FFFFFF", 0.76));
+    refs.previewStage.style.setProperty("--preview-backdrop", `linear-gradient(135deg, ${first} 0%, ${soft} 48%, ${second} 100%)`);
   } else {
-    refs.previewStage.style.setProperty("--preview-ink", first);
+    refs.previewStage.style.setProperty("--preview-ink", darkInk);
     refs.previewStage.style.setProperty("--preview-muted", "rgba(255, 255, 255, 0.6)");
-    refs.previewStage.style.setProperty("--preview-accent", accentNext);
-    refs.previewStage.style.setProperty("--preview-accent-2", accent);
-    refs.previewStage.style.setProperty("--preview-accent-ink", pickReadableText(accentNext));
-    refs.previewStage.style.setProperty("--preview-surface", nearDark);
-    refs.previewStage.style.setProperty("--preview-surface-soft", accent);
-    refs.previewStage.style.setProperty("--preview-surface-secondary", tag);
-    refs.previewStage.style.setProperty("--preview-surface-deep", darkest);
-    refs.previewStage.style.setProperty("--preview-surface-deep-ink", pickReadableText(darkest));
-    refs.previewStage.style.setProperty("--preview-outline", "rgba(255, 255, 255, 0.08)");
+    refs.previewStage.style.setProperty("--preview-accent", accent);
+    refs.previewStage.style.setProperty("--preview-accent-2", accentNext);
+    refs.previewStage.style.setProperty("--preview-accent-ink", pickReadableText(accent));
+    refs.previewStage.style.setProperty("--preview-surface", darkCardBg);
+    refs.previewStage.style.setProperty("--preview-surface-soft", darkPanelBg);
+    refs.previewStage.style.setProperty("--preview-surface-secondary", darkPanelAlt);
+    refs.previewStage.style.setProperty("--preview-surface-deep", first);
+    refs.previewStage.style.setProperty("--preview-surface-deep-ink", darkInk);
+    refs.previewStage.style.setProperty("--preview-outline", "rgba(255, 255, 255, 0.1)");
+    refs.previewStage.style.setProperty("--preview-shell-bg", darkShellBg);
+    refs.previewStage.style.setProperty("--preview-topbar-bg", darkTopbarBg);
+    refs.previewStage.style.setProperty("--preview-card-bg", darkCardBg);
+    refs.previewStage.style.setProperty("--preview-card-border", "rgba(255, 255, 255, 0.08)");
+    refs.previewStage.style.setProperty("--preview-card-shadow", "0 28px 64px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.04)");
+    refs.previewStage.style.setProperty("--preview-panel-bg", darkPanelBg);
+    refs.previewStage.style.setProperty("--preview-panel-bg-alt", darkPanelAlt);
+    refs.previewStage.style.setProperty("--preview-panel-strong", darkPanelStrong);
+    refs.previewStage.style.setProperty("--preview-panel-border", "rgba(255, 255, 255, 0.08)");
+    refs.previewStage.style.setProperty("--preview-panel-hero-start", darkHeroStart);
+    refs.previewStage.style.setProperty("--preview-panel-hero-end", darkHeroEnd);
+    refs.previewStage.style.setProperty("--preview-control-bg", darkControlBg);
+    refs.previewStage.style.setProperty("--preview-icon-bg", darkIconBg);
+    refs.previewStage.style.setProperty("--preview-icon-ink", blendHex(darkInk, "#FFFFFF", 0.16));
+    refs.previewStage.style.setProperty("--preview-toggle-off", darkToggleOff);
+    refs.previewStage.style.setProperty("--preview-ring-border", "rgba(255, 255, 255, 0.12)");
+    refs.previewStage.style.setProperty("--preview-loader-track", blendHex(accentNext, darkCardBg, 0.72));
+    refs.previewStage.style.setProperty(
+      "--preview-backdrop",
+      `radial-gradient(circle at 18% 14%, ${blendHex(accent, "#FFFFFF", 0.18)} 0%, transparent 28%), radial-gradient(circle at 84% 78%, ${blendHex(tag, "#FFFFFF", 0.08)} 0%, transparent 26%), linear-gradient(145deg, ${blendHex(first, "#020304", 0.52)} 0%, ${blendHex(second, "#040506", 0.44)} 42%, ${blendHex(tag, "#060709", 0.4)} 100%)`,
+    );
   }
 }
 
@@ -1396,6 +1693,7 @@ function render() {
   document.documentElement.style.colorScheme = state.mode;
   updateAnchorOptions();
   setModeState(state.mode);
+  setExportFormatState(state.exportFormat);
   setPreviewFormatState(state.previewFormat);
   setPreviewSceneState(state.previewScene);
   syncInputs();
@@ -1417,10 +1715,17 @@ function render() {
   scheduleScaleIndicatorSync();
   scheduleHeroMotionReady();
 
-  const tokenText = buildTokens(palette, neutralPalette);
-  refs.tokensOutput.value = tokenText;
+  const exportPayloads = getExportPayloads(palette, neutralPalette);
+  const exportPayload = exportPayloads[state.exportFormat] ?? exportPayloads.design;
+  refs.tokensOutput.value = exportPayload.text;
   if (refs.tokensPreview) {
-    refs.tokensPreview.textContent = tokenText;
+    refs.tokensPreview.textContent = exportPayload.text;
+  }
+  if (refs.exportMetaLabel) {
+    refs.exportMetaLabel.textContent = exportPayload.label;
+  }
+  if (refs.exportFormatNote) {
+    refs.exportFormatNote.textContent = exportPayload.note;
   }
   if (refs.exportMeta) {
     refs.exportMeta.textContent = `当前参考：色阶 ${state.anchorIndex + 1} / ${state.count} 阶`;
@@ -1527,6 +1832,7 @@ function bindScaleBandInteractions(container) {
     showGlobalMessage(
       didCopy ? `${step.dataset.name} 已复制：${step.dataset.hex}` : "复制失败，请重试",
       didCopy ? "success" : "error",
+      step,
     );
   });
 
@@ -1686,7 +1992,11 @@ refs.anchorHexInput.addEventListener("blur", () => {
 refs.copyTokensBtn.addEventListener("click", async () => {
   hideTooltip(refs.copyTokensBtn);
   const didCopy = await copyText(refs.tokensOutput.value);
-  showGlobalMessage(didCopy ? "变量输出已复制" : "复制失败，请重试", didCopy ? "success" : "error");
+  showGlobalMessage(
+    didCopy ? "变量输出已复制" : "复制失败，请重试",
+    didCopy ? "success" : "error",
+    refs.copyTokensBtn,
+  );
 });
 
 refs.shuffleBtn.addEventListener("click", () => {
@@ -1730,6 +2040,15 @@ if (refs.previewFormatToggle) {
   });
 }
 
+if (refs.exportFormatToggle) {
+  refs.exportFormatToggle.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-export-format]");
+    if (!button) return;
+    state.exportFormat = button.dataset.exportFormat;
+    render();
+  });
+}
+
 if (refs.previewSceneToggle) {
   refs.previewSceneToggle.addEventListener("click", (event) => {
     const button = event.target.closest("[data-scene]");
@@ -1744,6 +2063,9 @@ function handleScrollEffects() {
   syncHeroCardFrame();
   if (refs.tooltipTarget) {
     positionTooltip(refs.tooltipTarget);
+  }
+  if (refs.message?.classList.contains("is-visible")) {
+    positionGlobalMessage(refs.messageAnchor);
   }
 }
 
@@ -1763,6 +2085,9 @@ window.addEventListener("resize", () => {
   syncHeroReserve();
   syncScaleIndicatorToAnchor();
   syncAnchorStepObserver();
+  if (refs.message?.classList.contains("is-visible")) {
+    positionGlobalMessage(refs.messageAnchor);
+  }
 });
 window.addEventListener("resize", () => {
   if (refs.tooltipTarget) {

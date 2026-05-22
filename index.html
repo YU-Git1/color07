@@ -189,64 +189,26 @@
         <section class="panel panel-preview">
           <div class="panel-heading panel-heading-inline">
             <div>
-              <span class="panel-title">实验示例</span>
-              <p>切换不同行业场景，直接看当前配色方案落进真实界面后的效果</p>
+              <span class="panel-title">案例演示</span>
+              <p>使用你的专属色彩，上手看看效果如何</p>
             </div>
-            <div class="preview-scene-toggle" id="previewSceneToggle" role="tablist" aria-label="切换行业场景">
+            <div class="preview-scene-toggle" id="previewSceneToggle" role="tablist" aria-label="切换案例场景" hidden aria-hidden="true">
               <button type="button" class="preview-scene-btn is-active" data-scene="app" role="tab" aria-selected="true">APP</button>
-              <button type="button" class="preview-scene-btn" data-scene="site" role="tab" aria-selected="false">Site</button>
+              <button type="button" class="preview-scene-btn" data-scene="form" role="tab" aria-selected="false">表单</button>
             </div>
           </div>
           <div class="preview-stage" id="previewStage">
-            <div class="preview-layout">
-              <div class="preview-showcase">
-                <span class="preview-badge" id="previewBadge">APP 场景</span>
-                <h2 id="previewHeading">看这组颜色放进移动应用后，按钮、标签和卡片是否协调</h2>
-                <p id="previewDescription">这里不是单纯看颜色好不好看，而是直接看它落进产品界面后，层级、对比和品牌感能不能同时成立。</p>
-                <div class="preview-actions" aria-hidden="true">
-                  <button type="button" class="preview-cta" id="previewPrimaryAction">主操作按钮</button>
-                  <button type="button" class="preview-secondary" id="previewSecondaryAction">次级按钮</button>
-                  <span class="preview-status" id="previewStatus">当前锚点已应用</span>
-                </div>
-                <div class="preview-metric-list" id="previewMetricList"></div>
-              </div>
-
-              <div class="preview-scene">
-                <div class="preview-scene-shell">
-                  <div class="preview-scene-topbar" aria-hidden="true">
-                    <span class="preview-scene-dot"></span>
-                    <span class="preview-scene-dot"></span>
-                    <span class="preview-scene-dot"></span>
-                    <span class="preview-scene-tab" id="previewSceneTab">App Home</span>
+            <div class="preview-layout preview-layout-single">
+              <div class="preview-system">
+                <div class="preview-system-shell">
+                  <div class="preview-system-topbar" aria-hidden="true">
+                    <span class="preview-system-dot"></span>
+                    <span class="preview-system-dot"></span>
+                    <span class="preview-system-dot"></span>
+                    <span class="preview-system-tab">Component Playground</span>
                   </div>
 
-                  <div class="preview-scene-body">
-                    <div class="preview-scene-copy">
-                      <span class="preview-scene-kicker" id="previewSceneKicker">APP 界面</span>
-                      <h3 id="previewSceneTitle">会员卡、功能标签和主按钮的真实落位</h3>
-                      <p id="previewSceneDescription">模拟常见产品首页，判断当前主色作为强调色时，是否能同时撑住主操作、浅底标签和深色信息块。</p>
-                      <div class="preview-actions preview-actions-scene" aria-hidden="true">
-                        <button type="button" class="preview-cta" id="previewScenePrimaryAction">立即应用</button>
-                        <button type="button" class="preview-secondary" id="previewSceneSecondaryAction">查看变量</button>
-                      </div>
-                    </div>
-
-                    <div class="preview-scene-aside">
-                      <div class="preview-swatch-card preview-swatch-card-accent">
-                        <span class="preview-swatch-label" id="previewAccentLabel">当前锚点</span>
-                        <strong id="previewAnchorName">color-6</strong>
-                        <span id="previewAnchorValue">#0BBBD6</span>
-                      </div>
-
-                      <div class="preview-chip-row" id="previewChipRow"></div>
-
-                      <div class="preview-swatch-card preview-swatch-card-deep">
-                        <span class="preview-swatch-label" id="previewDeepLabel">深色信息块</span>
-                        <strong id="previewDeepTitle">文字对比检查</strong>
-                        <span id="previewDeepValue">#3D4C52</span>
-                      </div>
-                    </div>
-                  </div>
+                  <div class="preview-system-body" id="previewSystemCanvas"></div>
                 </div>
               </div>
             </div>
@@ -259,7 +221,7 @@
               <span class="panel-title">变量输出</span>
               <p>直接复制给设计或前端</p>
             </div>
-            <button type="button" class="pill-icon-btn panel-copy-btn" id="copyTokensBtn" aria-label="复制变量" data-tooltip="复制变量">
+            <button type="button" class="pill-icon-btn panel-copy-btn" id="copyTokensBtn" aria-label="复制当前输出" data-tooltip="复制当前输出">
               <svg viewBox="0 0 20 20" aria-hidden="true">
                 <path d="M16.7451 1.45801C17.7372 1.45821 18.5418 2.26279 18.542 3.25488V13.4111C18.542 14.4034 17.7373 15.2078 16.7451 15.208H15.208V16.7451C15.2078 17.7373 14.4034 18.542 13.4111 18.542H3.25488C2.26279 18.5418 1.45821 17.7372 1.45801 16.7451V6.58887C1.45801 5.5966 2.26266 4.79219 3.25488 4.79199H4.79199V3.25488C4.79219 2.26266 5.5966 1.45801 6.58887 1.45801H16.7451ZM3.25488 6.04199C2.95302 6.04219 2.70801 6.28696 2.70801 6.58887V16.7451C2.70821 17.0469 2.95314 17.2918 3.25488 17.292H13.4111C13.713 17.292 13.9578 17.047 13.958 16.7451V6.58887C13.958 6.28684 13.7132 6.04199 13.4111 6.04199H3.25488ZM6.58887 2.70801C6.28696 2.70801 6.04219 2.95302 6.04199 3.25488V4.79199H13.4111C14.4035 4.79199 15.208 5.59648 15.208 6.58887V13.958H16.7451C17.047 13.9578 17.292 13.713 17.292 13.4111V3.25488C17.2918 2.95314 17.0469 2.70821 16.7451 2.70801H6.58887Z" fill="currentColor" />
               </svg>
@@ -267,8 +229,33 @@
             </button>
           </div>
           <div class="export-surface">
+            <div class="export-guide">
+              <article class="export-guide-card">
+                <span class="export-guide-kicker">给设计</span>
+                <strong>看清单</strong>
+                <p>直接看每一阶对应的 HEX 色值，沟通时最直观。</p>
+              </article>
+              <article class="export-guide-card">
+                <span class="export-guide-kicker">给前端</span>
+                <strong>用 CSS 变量</strong>
+                <p>复制进项目样式文件，就能直接开始接入。</p>
+              </article>
+              <article class="export-guide-card">
+                <span class="export-guide-kicker">给工具</span>
+                <strong>用 JSON</strong>
+                <p>适合给插件、脚本或 AI 工具继续处理。</p>
+              </article>
+            </div>
+            <div class="export-toolbar">
+              <div class="export-format-toggle" id="exportFormatToggle" role="tablist" aria-label="切换输出格式">
+                <button type="button" class="export-format-btn is-active" data-export-format="design" role="tab" aria-selected="true">清单</button>
+                <button type="button" class="export-format-btn" data-export-format="css" role="tab" aria-selected="false">CSS</button>
+                <button type="button" class="export-format-btn" data-export-format="json" role="tab" aria-selected="false">JSON</button>
+              </div>
+              <p class="export-format-note" id="exportFormatNote">最适合先自己看，或直接发给设计师确认色阶。</p>
+            </div>
             <div class="export-meta">
-              <span class="export-meta-label">实时输出</span>
+              <span class="export-meta-label" id="exportMetaLabel">设计清单</span>
               <span class="export-meta-value" id="exportMeta">当前参考：色阶 6 / 10 阶</span>
             </div>
             <pre class="export-code" id="tokensPreview" aria-label="色阶变量预览"></pre>

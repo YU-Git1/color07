@@ -1,8 +1,8 @@
 {
   "name": "color-scale-generator",
   "private": true,
-  "version": "1.1.0",
-  "description": "网页端色阶生成工具，支持浅色/深色模式与多场景配色预览",
+  "version": "1.2.0",
+  "description": "网页端色阶生成工具，支持浅色/深色模式、案例预演与多格式变量输出",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
