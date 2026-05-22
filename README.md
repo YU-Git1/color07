@@ -1,100 +1,94 @@
 # 色阶生成工具
 
-一个可直接在网页运行的色阶生成工具，支持浅色/深色模式、彩色色阶与灰色色阶、变量输出和复制。
+一个可直接在网页运行的色阶生成工具。
 
-## 技术方案
+它的核心差异点是：
 
-这个版本使用 `Vite + 原生 HTML/CSS/JavaScript` 封装。
+- 任意节点都可以替换成你的颜色
+- 整条色阶会自动重算
+- 支持浅色 / 深色模式
+- 支持 `HEX / HSB / RGB / HSL`
+- 支持变量输出和快速复制
+- 支持 `APP / Site` 场景预览
 
-这样做的原因：
+## 在线访问
 
-- 当前第一版已经是完整产品形态，不需要为了部署强行迁到 React 或 Vue。
-- Vite 本地开发快，打包简单，后续继续加功能也方便。
-- 非常适合部署到 GitHub Pages，直接发链接给朋友测试。
+- 线上地址：`https://yu-git1.github.io/color07/`
+- 仓库地址：`https://github.com/YU-Git1/color07`
 
-## 本地运行
+## 当前版本
+
+- `v1.0`：第一版稳定版本
+- `v1.1`：当前版本
+
+详细更新内容见：[CHANGELOG.md](./CHANGELOG.md)
+
+## 技术栈
+
+- `Vite`
+- 原生 `HTML / CSS / JavaScript`
+- `GitHub Pages` 自动部署
+
+## 本地开发
+
+安装依赖：
 
 ```bash
 npm install
+```
+
+启动开发：
+
+```bash
 npm run dev
 ```
 
-默认开发地址：
+默认地址：
 
 ```text
 http://127.0.0.1:4173/
 ```
 
-## 打包
+## 构建
 
 ```bash
 npm run build
 ```
 
-打包产物会输出到：
+构建产物输出到：
 
 ```text
 dist/
 ```
 
-## 部署到 GitHub Pages
-
-仓库里已经带好了 GitHub Actions 工作流。
-
-你只需要：
-
-1. 在你自己的 GitHub 账号下新建仓库
-2. 把这个项目推上去
-3. 打开 GitHub 仓库的 `Settings > Pages`
-4. 在 `Source` 里选择 `GitHub Actions`
-
-之后每次你往 `main` 或 `master` 推送代码，GitHub 都会自动重新部署。
-
-## 访问地址
-
-有两种情况：
-
-1. 如果仓库名是 `你的用户名.github.io`
-
-访问地址就是：
-
-```text
-https://你的用户名.github.io/
-```
-
-2. 如果仓库名是普通项目名，比如 `color-scale-generator`
-
-访问地址就是：
-
-```text
-https://你的用户名.github.io/color-scale-generator/
-```
-
-当前工作流已经兼容这两种地址，不需要你手改 base 配置。
-
-## 版本管理建议
-
-为了避免“这次改动把之前已经好的内容改坏”，这个项目后面建议固定用下面这套方式：
+## 分支约定
 
 - `main`
-  用来放当前稳定、可访问、可发给朋友测试的版本。
+  当前稳定版，也是 GitHub Pages 发布分支
 - `develop`
-  用来放日常开发中的版本。后续新需求、新样式调整、新交互优化，先在这里做。
+  日常开发分支，需求和优化先在这里完成
 
-### 推荐工作流
+## 发布方式
 
-1. 日常开发先切到 `develop`
-2. 功能改完后，先本地确认
-3. 确认没问题，再合并到 `main`
-4. 推送 `main` 后，GitHub Pages 自动更新线上版本
+仓库内已经配置好 GitHub Actions。
 
-### 你以后只需要记住
+当代码推送到 `main` 后，会自动部署到 GitHub Pages。
 
-- 想继续开发新功能：在 `develop`
-- 想保留稳定版本：看 `main`
-- 想上线给别人看：把确认好的内容合并到 `main`
+工作流文件：
 
-### 常用命令
+```text
+.github/workflows/deploy.yml
+```
+
+## 推荐工作流
+
+1. 新需求先在 `develop` 开发
+2. 本地确认无问题后提交
+3. 合并到 `main`
+4. 推送 `main`
+5. GitHub Pages 自动更新线上版本
+
+## 常用命令
 
 切到开发分支：
 
@@ -102,23 +96,23 @@ https://你的用户名.github.io/color-scale-generator/
 git switch develop
 ```
 
-切回稳定分支：
+切到稳定分支：
 
 ```bash
 git switch main
 ```
 
-查看当前改了什么：
+查看改动：
 
 ```bash
 git status
 ```
 
-保存一个版本：
+提交版本：
 
 ```bash
 git add .
-git commit -m "写清楚这次改了什么"
+git commit -m "说明这次改了什么"
 ```
 
 推送开发分支：
@@ -132,16 +126,3 @@ git push origin develop
 ```bash
 git push origin main
 ```
-
-## 后续协作约定
-
-后面我帮你继续开发时，默认遵守这套规则：
-
-- 不随便动已经确认好的部分
-- 每次改完告诉你：
-  - 修改了什么
-  - 新增了啥
-  - 删除了啥
-  - 目前进度
-- 重要版本优先保留在 `main`
-- 新功能和试验性改动优先放在 `develop`
