@@ -26,11 +26,31 @@
               <h1>色阶</h1>
               <p>任意节点，皆是主色</p>
             </div>
+            <div class="toolbar-pill toolbar-mode toolbar-mode-toggle hero-mode-toggle-mobile" id="modeToggleMobile" role="group" aria-label="切换浅色或暗色模式">
+              <button type="button" class="mode-btn is-active" data-mode="light" aria-label="浅色模式" data-tooltip="浅色模式">
+                <svg viewBox="0 0 20 20" aria-hidden="true">
+                  <path d="M10 15.4167C12.9915 15.4167 15.4167 12.9915 15.4167 10C15.4167 7.00846 12.9915 4.58333 10 4.58333C7.00846 4.58333 4.58333 7.00846 4.58333 10C4.58333 12.9915 7.00846 15.4167 10 15.4167Z" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="1.25" />
+                  <path d="M10 2.5C10.5753 2.5 11.0417 2.03363 11.0417 1.45833C11.0417 0.883038 10.5753 0.416667 10 0.416667C9.42471 0.416667 8.95833 0.883038 8.95833 1.45833C8.95833 2.03363 9.42471 2.5 10 2.5Z" fill="currentColor" />
+                  <path d="M16.0417 5C16.617 5 17.0833 4.53363 17.0833 3.95833C17.0833 3.38304 16.617 2.91667 16.0417 2.91667C15.4664 2.91667 15 3.38304 15 3.95833C15 4.53363 15.4664 5 16.0417 5Z" fill="currentColor" />
+                  <path d="M18.5417 11.0417C19.117 11.0417 19.5833 10.5753 19.5833 10C19.5833 9.42471 19.117 8.95833 18.5417 8.95833C17.9664 8.95833 17.5 9.42471 17.5 10C17.5 10.5753 17.9664 11.0417 18.5417 11.0417Z" fill="currentColor" />
+                  <path d="M16.0417 17.0833C16.617 17.0833 17.0833 16.617 17.0833 16.0417C17.0833 15.4664 16.617 15 16.0417 15C15.4664 15 15 15.4664 15 16.0417C15 16.617 15.4664 17.0833 16.0417 17.0833Z" fill="currentColor" />
+                  <path d="M10 19.5833C10.5753 19.5833 11.0417 19.117 11.0417 18.5417C11.0417 17.9664 10.5753 17.5 10 17.5C9.42471 17.5 8.95833 17.9664 8.95833 18.5417C8.95833 19.117 9.42471 19.5833 10 19.5833Z" fill="currentColor" />
+                  <path d="M3.95833 17.0833C4.53363 17.0833 5 16.617 5 16.0417C5 15.4664 4.53363 15 3.95833 15C3.38304 15 2.91667 15.4664 2.91667 16.0417C2.91667 16.617 3.38304 17.0833 3.95833 17.0833Z" fill="currentColor" />
+                  <path d="M1.45833 11.0417C2.03363 11.0417 2.5 10.5753 2.5 10C2.5 9.42471 2.03363 8.95833 1.45833 8.95833C0.883038 8.95833 0.416667 9.42471 0.416667 10C0.416667 10.5753 0.883038 11.0417 1.45833 11.0417Z" fill="currentColor" />
+                  <path d="M3.95833 5C4.53363 5 5 4.53363 5 3.95833C5 3.38304 4.53363 2.91667 3.95833 2.91667C3.38304 2.91667 2.91667 3.38304 2.91667 3.95833C2.91667 4.53363 3.38304 5 3.95833 5Z" fill="currentColor" />
+                </svg>
+              </button>
+              <button type="button" class="mode-btn" data-mode="dark" aria-label="暗色模式" data-tooltip="暗色模式">
+                <svg viewBox="0 0 20 20" aria-hidden="true">
+                  <path d="M11.6886 1.83785C9.4095 2.43206 7.72729 4.50442 7.72729 6.96971C7.72729 9.8985 10.1015 12.2727 13.0303 12.2727C15.4956 12.2727 17.568 10.5905 18.1621 8.31138C18.2744 8.85667 18.3333 9.42146 18.3333 10C18.3333 14.6024 14.6024 18.3333 10 18.3333C5.39763 18.3333 1.66667 14.6024 1.66667 10C1.66667 5.39763 5.39763 1.66667 10 1.66667C10.5785 1.66667 11.1433 1.72562 11.6886 1.83785Z" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-opacity="0.6" stroke-width="1.25" />
+                </svg>
+              </button>
+            </div>
           </div>
 
-          <section class="toolbar" aria-label="色阶设置">
+          <section class="toolbar" id="heroToolbar" aria-label="色阶设置">
             <label class="toolbar-pill toolbar-select toolbar-select-anchor">
-              <span class="toolbar-label">色阶基准</span>
+              <span class="toolbar-label">基准</span>
               <span class="toolbar-divider" aria-hidden="true"></span>
               <span class="toolbar-select-value">
                 <button
@@ -205,7 +225,7 @@
                     <span class="preview-system-dot"></span>
                     <span class="preview-system-dot"></span>
                     <span class="preview-system-dot"></span>
-                    <span class="preview-system-tab">Component Playground</span>
+                    <span class="preview-system-tab">案例演示 / 跑步 APP</span>
                   </div>
 
                   <div class="preview-system-body" id="previewSystemCanvas"></div>
@@ -219,7 +239,7 @@
           <div class="panel-heading panel-heading-inline">
             <div>
               <span class="panel-title">变量输出</span>
-              <p>直接复制给设计或前端</p>
+              <p>整理好后，直接交给设计、前端或工具继续使用</p>
             </div>
             <button type="button" class="pill-icon-btn panel-copy-btn" id="copyTokensBtn" aria-label="复制当前输出" data-tooltip="复制当前输出">
               <svg viewBox="0 0 20 20" aria-hidden="true">
@@ -248,15 +268,33 @@
             </div>
             <div class="export-toolbar">
               <div class="export-format-toggle" id="exportFormatToggle" role="tablist" aria-label="切换输出格式">
-                <button type="button" class="export-format-btn is-active" data-export-format="design" role="tab" aria-selected="true">清单</button>
-                <button type="button" class="export-format-btn" data-export-format="css" role="tab" aria-selected="false">CSS</button>
-                <button type="button" class="export-format-btn" data-export-format="json" role="tab" aria-selected="false">JSON</button>
+                <button type="button" class="export-format-btn is-active" data-export-format="design" role="tab" aria-selected="true">
+                  <span>清单</span>
+                </button>
+                <button type="button" class="export-format-btn" data-export-format="css" role="tab" aria-selected="false">
+                  <span>CSS</span>
+                </button>
+                <button type="button" class="export-format-btn" data-export-format="json" role="tab" aria-selected="false">
+                  <span>JSON</span>
+                </button>
               </div>
               <p class="export-format-note" id="exportFormatNote">最适合先自己看，或直接发给设计师确认色阶。</p>
             </div>
-            <div class="export-meta">
-              <span class="export-meta-label" id="exportMetaLabel">设计清单</span>
-              <span class="export-meta-value" id="exportMeta">当前参考：色阶 6 / 10 阶</span>
+            <div class="export-preview-head">
+              <div class="export-meta">
+                <span class="export-meta-label" id="exportMetaLabel">设计清单</span>
+                <span class="export-meta-value" id="exportMeta">当前参考：色阶 6 / 10 阶</span>
+              </div>
+              <div class="export-preview-stats">
+                <span class="export-preview-stat">
+                  <em>当前输出</em>
+                  <strong id="exportHeroStat">设计清单</strong>
+                </span>
+                <span class="export-preview-stat">
+                  <em>当前参考</em>
+                  <strong id="exportHeroAnchor">色阶 6 / 10 阶</strong>
+                </span>
+              </div>
             </div>
             <pre class="export-code" id="tokensPreview" aria-label="色阶变量预览"></pre>
           </div>

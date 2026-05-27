@@ -20,6 +20,7 @@ const refs = {
   body: document.body,
   appShell: document.querySelector(".app-shell"),
   heroCard: document.querySelector(".hero-card"),
+  modeToggleMobile: document.getElementById("modeToggleMobile"),
   favicon: document.getElementById("appFavicon"),
   modeToggle: document.getElementById("modeToggle"),
   countValue: document.getElementById("countValue"),
@@ -59,6 +60,8 @@ const refs = {
   exportFormatNote: document.getElementById("exportFormatNote"),
   exportMetaLabel: document.getElementById("exportMetaLabel"),
   exportMeta: document.getElementById("exportMeta"),
+  exportHeroStat: document.getElementById("exportHeroStat"),
+  exportHeroAnchor: document.getElementById("exportHeroAnchor"),
   tokensPreview: document.getElementById("tokensPreview"),
   tokensOutput: document.getElementById("tokensOutput"),
   copyTokensBtn: document.getElementById("copyTokensBtn"),
@@ -76,6 +79,7 @@ let scaleIndicatorFrame = 0;
 let heroMotionReadyFrame = 0;
 let heroResizeSyncTimer = 0;
 let scaleIndicatorResizeSyncTimer = 0;
+let previewCarouselSyncFrame = 0;
 let anchorMenuOpen = false;
 let colorPopoverOpen = false;
 let colorPickerDraggingSv = false;
@@ -119,7 +123,8 @@ function syncHeroCardFrame() {
   const shellRect = refs.appShell.getBoundingClientRect();
   const rootStyles = getComputedStyle(document.documentElement);
   const shrink = parseFloat(rootStyles.getPropertyValue("--hero-scroll-shrink")) || 48;
-  const isElevated = refs.heroCard.classList.contains("is-elevated");
+  const isMobileViewport = window.matchMedia("(max-width: 640px)").matches;
+  const isElevated = !isMobileViewport && refs.heroCard.classList.contains("is-elevated");
   const width = Math.max(0, shellRect.width - (isElevated ? shrink : 0));
   const left = shellRect.left + (isElevated ? shrink / 2 : 0);
 
@@ -164,6 +169,79 @@ function syncScaleIndicatorResizeMotion() {
     refs.scaleBandIndicator?.classList.remove("is-resize-sync");
     scaleIndicatorResizeSyncTimer = 0;
   }, 96);
+}
+
+function getPreviewCarouselElements() {
+  const carousel = refs.previewSystemCanvas?.querySelector("[data-preview-carousel]");
+  const strip = carousel?.querySelector("[data-preview-strip]");
+  const cards = strip ? Array.from(strip.querySelectorAll(".preview-phone-card")) : [];
+  const dots = carousel ? Array.from(carousel.querySelectorAll("[data-preview-page]")) : [];
+
+  if (!carousel || !strip || cards.length === 0 || dots.length === 0) {
+    return null;
+  }
+
+  return { carousel, strip, cards, dots };
+}
+
+function syncPreviewMobileCarouselState() {
+  const elements = getPreviewCarouselElements();
+  if (!elements) return;
+
+  const { strip, cards, dots } = elements;
+  const stripCenter = strip.scrollLeft + strip.clientWidth / 2;
+  let activeIndex = 0;
+  let minDistance = Number.POSITIVE_INFINITY;
+
+  cards.forEach((card, index) => {
+    const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+    const distance = Math.abs(cardCenter - stripCenter);
+    if (distance < minDistance) {
+      minDistance = distance;
+      activeIndex = index;
+    }
+  });
+
+  dots.forEach((dot, index) => {
+    const isActive = index === activeIndex;
+    dot.classList.toggle("is-active", isActive);
+    dot.setAttribute("aria-current", isActive ? "true" : "false");
+  });
+}
+
+function schedulePreviewMobileCarouselSync() {
+  if (previewCarouselSyncFrame) return;
+  previewCarouselSyncFrame = window.requestAnimationFrame(() => {
+    previewCarouselSyncFrame = 0;
+    syncPreviewMobileCarouselState();
+  });
+}
+
+function initPreviewMobileCarousel() {
+  const elements = getPreviewCarouselElements();
+  if (!elements) return;
+
+  const { strip, cards, dots } = elements;
+
+  if (!strip.dataset.carouselBound) {
+    strip.dataset.carouselBound = "true";
+    strip.addEventListener("scroll", schedulePreviewMobileCarouselSync, { passive: true });
+  }
+
+  dots.forEach((dot, index) => {
+    if (dot.dataset.carouselBound) return;
+    dot.dataset.carouselBound = "true";
+    dot.addEventListener("click", () => {
+      const card = cards[index];
+      if (!card) return;
+      strip.scrollTo({
+        left: card.offsetLeft,
+        behavior: "smooth",
+      });
+    });
+  });
+
+  schedulePreviewMobileCarouselSync();
 }
 
 function ensureMessage() {
@@ -812,6 +890,9 @@ function setModeState(value) {
   refs.modeToggle.querySelectorAll("[data-mode]").forEach((button) => {
     button.classList.toggle("is-active", button.dataset.mode === value);
   });
+  refs.modeToggleMobile?.querySelectorAll("[data-mode]").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.mode === value);
+  });
 }
 
 function setPreviewFormatState(value) {
@@ -1301,203 +1382,305 @@ function renderPreviewShowcase(palette) {
         <div class="preview-app-demo-glow preview-app-demo-glow-right"></div>
         <div class="preview-app-demo-shell">
           <div class="preview-app-demo-copy">
-            <span class="preview-app-demo-kicker">Product Preview</span>
-            <h3>色阶进入真实产品后的预演效果</h3>
-            <p>这里提前看主按钮、浅底模块、深色信息区和辅助状态进入真实界面后的感觉，不用等输出后再验证。</p>
+            <span class="preview-app-demo-kicker">APP 场景 / 跑步类产品</span>
+            <h3>案例演示</h3>
+            <p>把当前色阶直接放进更接近真实产品的跑步 APP 界面里，先看气质、层级和可读性，再决定是否输出。</p>
           </div>
 
-          <div class="preview-phone-strip">
+          <div class="preview-phone-carousel" data-preview-carousel>
+            <div class="preview-phone-strip" data-preview-strip>
             <article class="preview-phone-card preview-phone-card-left">
               <div class="preview-phone-status">
-                <span class="preview-phone-brand">Flydrop</span>
-                <span class="preview-phone-icon">↗</span>
+                <span class="preview-phone-brand">燃跑</span>
+                <span class="preview-phone-icon">9:41</span>
               </div>
 
-              <div class="preview-phone-panel preview-phone-hero-card">
-                <div class="preview-profile-row">
-                  <span class="preview-avatar-chip" style="--avatar-bg:${accentNext}; --avatar-ink:${pickReadableText(accentNext)}">LS</span>
-                  <div class="preview-profile-copy">
-                    <strong>Lucas Sutopo</strong>
-                    <span>Design lead · 8 active projects</span>
-                  </div>
-                  <span class="preview-inline-chip" style="--preview-chip-bg:${accentNext}; --preview-chip-ink:${pickReadableText(accentNext)}">Pro</span>
+              <div class="preview-phone-panel preview-phone-hero-card preview-run-home-hero">
+                <div class="preview-run-badge-row">
+                  <span class="preview-inline-chip" style="--preview-chip-bg:${accentNext}; --preview-chip-ink:${pickReadableText(accentNext)}">户外跑</span>
+                  <span class="preview-run-weather">23°C · 微风 · 空气优</span>
                 </div>
 
-                <div class="preview-stat-strip">
-                  <div class="preview-stat-mini">
-                    <span>Shared today</span>
-                    <strong>24 files</strong>
+                <div class="preview-run-cover">
+                  <div class="preview-run-cover-glow"></div>
+                  <div class="preview-run-cover-track"></div>
+                  <div class="preview-run-cover-dot dot-1"></div>
+                  <div class="preview-run-cover-dot dot-2"></div>
+                  <div class="preview-run-cover-dot dot-3"></div>
+                </div>
+
+                <div class="preview-run-hero-main">
+                  <span class="preview-run-hero-label">今日训练目标</span>
+                  <strong>5.20<span> km</span></strong>
+                  <p>状态不错，适合完成一次轻松恢复跑。</p>
+                </div>
+
+                <div class="preview-run-hero-meta">
+                  <div>
+                    <span>建议时长</span>
+                    <strong>32 分钟</strong>
                   </div>
-                  <div class="preview-stat-mini">
-                    <span>Storage</span>
-                    <strong>82%</strong>
+                  <div>
+                    <span>最佳时段</span>
+                    <strong>18:30</strong>
+                  </div>
+                  <div>
+                    <span>训练类型</span>
+                    <strong>恢复跑</strong>
                   </div>
                 </div>
 
                 <div class="preview-phone-action-row">
-                  <button type="button" class="preview-phone-action preview-phone-action-primary">Share Now</button>
-                  <button type="button" class="preview-phone-action preview-phone-action-secondary">Create Link</button>
+                  <button type="button" class="preview-phone-action preview-phone-action-primary">开始跑步</button>
+                  <button type="button" class="preview-phone-action preview-phone-action-secondary">AI 热身</button>
+                </div>
+              </div>
+
+              <div class="preview-run-map-card">
+                <div class="preview-run-map-route"></div>
+                <div class="preview-run-map-point start"></div>
+                <div class="preview-run-map-point end"></div>
+                <div class="preview-run-map-copy">
+                  <strong>滨江轻松跑路线</strong>
+                  <span>5.1 km · 红绿灯少 · 路况平稳</span>
+                </div>
+              </div>
+
+              <div class="preview-run-shortcut-grid">
+                <div class="preview-run-shortcut-card">
+                  <span class="preview-run-shortcut-icon">训</span>
+                  <strong>训练计划</strong>
+                  <em>按目标自动安排</em>
+                </div>
+                <div class="preview-run-shortcut-card">
+                  <span class="preview-run-shortcut-icon">路</span>
+                  <strong>推荐路线</strong>
+                  <em>附近 3 条可跑</em>
+                </div>
+                <div class="preview-run-shortcut-card">
+                  <span class="preview-run-shortcut-icon">恢</span>
+                  <strong>跑后恢复</strong>
+                  <em>拉伸 8 分钟</em>
                 </div>
               </div>
 
               <div class="preview-phone-panel">
                 <div class="preview-phone-section-head">
-                  <strong>Quick Collections</strong>
-                  <span>2 pinned</span>
+                  <strong>今日推荐课程</strong>
+                  <span>为你定制</span>
                 </div>
-                <div class="preview-collection-grid">
-                  <div class="preview-collection-card">
-                    <strong>Brand Assets</strong>
-                    <span>32 items · updated today</span>
+                <div class="preview-run-course-card">
+                  <div class="preview-run-course-copy">
+                    <strong>10 公里进阶节奏跑</strong>
+                    <em>提升耐力与配速稳定性</em>
                   </div>
-                  <div class="preview-collection-card">
-                    <strong>Handoff Pack</strong>
-                    <span>12 files · review ready</span>
+                  <div class="preview-run-course-side">
+                    <span>42 分钟</span>
+                    <strong>Lv.2</strong>
                   </div>
                 </div>
-              </div>
-
-              <div class="preview-phone-panel">
-                <div class="preview-phone-section-head">
-                  <strong>Latest Activities</strong>
-                  <span>View all</span>
-                </div>
-                <div class="preview-activity-list">
-                  <div class="preview-activity-item">
+                <div class="preview-run-note-list">
+                  <div class="preview-run-note-item">
                     <span class="preview-activity-dot"></span>
                     <div class="preview-activity-copy">
-                      <strong>Landing Hero.fig</strong>
-                      <em>Ashley updated it · 2 min ago</em>
+                      <strong>跑鞋剩余寿命 86 km</strong>
+                      <em>建议本周训练后检查缓震反馈</em>
                     </div>
-                    <span class="preview-inline-chip preview-inline-chip-soft" style="--preview-chip-bg:${soft}; --preview-chip-ink:${pickReadableText(soft)}">Review</span>
                   </div>
-                  <div class="preview-activity-item">
+                  <div class="preview-run-note-item">
                     <span class="preview-activity-dot"></span>
                     <div class="preview-activity-copy">
-                      <strong>Product Icons.zip</strong>
-                      <em>Greyhold shared 4 files · 14 min ago</em>
+                      <strong>你已经连续打卡 6 天</strong>
+                      <em>今天完成目标即可解锁本周徽章</em>
                     </div>
-                    <span class="preview-inline-chip preview-inline-chip-soft" style="--preview-chip-bg:${tag}; --preview-chip-ink:${pickReadableText(tag)}">New</span>
                   </div>
                 </div>
               </div>
 
               <div class="preview-phone-nav">
-                <span class="is-active">Home</span>
-                <span>Files</span>
-                <span>Profile</span>
+                <span class="is-active">首页</span>
+                <span>运动</span>
+                <span>我的</span>
               </div>
             </article>
 
             <article class="preview-phone-card preview-phone-card-center">
               <div class="preview-phone-status preview-phone-status-center">
                 <span>←</span>
-                <strong>Transfer Center</strong>
-                <span class="preview-inline-chip preview-inline-chip-soft" style="--preview-chip-bg:${soft}; --preview-chip-ink:${pickReadableText(soft)}">Live</span>
+                <strong>运动数据</strong>
+                <span class="preview-inline-chip preview-inline-chip-soft" style="--preview-chip-bg:${soft}; --preview-chip-ink:${pickReadableText(soft)}">本周</span>
               </div>
 
-              <div class="preview-transfer-ring">
-                <div class="preview-transfer-ring-core">
-                  <div class="preview-transfer-avatars">
-                    <span style="--avatar-bg:${soft}; --avatar-ink:${pickReadableText(soft)}">LM</span>
-                    <span style="--avatar-bg:${accent}; --avatar-ink:${pickReadableText(accent)}">FI</span>
-                    <span style="--avatar-bg:${deepInfo}; --avatar-ink:${pickReadableText(deepInfo)}">AN</span>
-                  </div>
-                  <strong>Receiving from Ashley</strong>
-                  <span>Design handoff · 4 files</span>
+              <div class="preview-phone-panel preview-run-data-hero">
+                <div class="preview-run-data-total">
+                  <span>累计跑量</span>
+                  <strong>26.4 km</strong>
+                  <em>较上周 +12%</em>
+                </div>
+
+                <div class="preview-transfer-stats">
+                  <div><span>平均配速</span><strong>5'18"</strong></div>
+                  <div><span>训练时长</span><strong>3h 42m</strong></div>
+                  <div><span>消耗热量</span><strong>2140 kcal</strong></div>
                 </div>
               </div>
 
-              <div class="preview-transfer-stats">
-                <div><span>Queue</span><strong>4 files</strong></div>
-                <div><span>Received</span><strong>812 MB</strong></div>
-                <div><span>Time left</span><strong>2 min</strong></div>
+              <div class="preview-phone-panel preview-run-highlight-card">
+                <div class="preview-run-highlight-copy">
+                  <span>本次最佳表现</span>
+                  <strong>10 km 配速进入 5'10"</strong>
+                  <em>相比上个周期更稳定</em>
+                </div>
+                <div class="preview-run-highlight-ring">
+                  <span>87</span>
+                  <em>状态分</em>
+                </div>
+              </div>
+
+              <div class="preview-phone-panel">
+                <div class="preview-phone-section-head">
+                  <strong>近 7 天趋势</strong>
+                  <span>跑量 / km</span>
+                </div>
+                <div class="preview-run-chart">
+                  <div class="preview-run-chart-bar"><span style="height:42%"></span><em>一</em></div>
+                  <div class="preview-run-chart-bar"><span style="height:68%"></span><em>二</em></div>
+                  <div class="preview-run-chart-bar"><span style="height:36%"></span><em>三</em></div>
+                  <div class="preview-run-chart-bar"><span style="height:84%"></span><em>四</em></div>
+                  <div class="preview-run-chart-bar"><span style="height:58%"></span><em>五</em></div>
+                  <div class="preview-run-chart-bar"><span style="height:92%"></span><em>六</em></div>
+                  <div class="preview-run-chart-bar"><span style="height:26%"></span><em>日</em></div>
+                </div>
               </div>
 
               <div class="preview-phone-panel preview-file-list-card">
                 <div class="preview-phone-section-head">
-                  <strong>Transfer Queue</strong>
-                  <span>82% synced</span>
+                  <strong>核心指标</strong>
+                  <span>本次训练周期</span>
                 </div>
-                <div class="preview-file-list">
-                  <div class="preview-file-item preview-file-item-progress">
-                    <span class="preview-file-icon">FIG</span>
-                    <div class="preview-file-copy">
-                      <strong>Landing Hero.fig</strong>
-                      <em>14.8 MB · Ashley</em>
-                      <span class="preview-file-progress"><span style="width:82%"></span></span>
+                <div class="preview-run-metric-list">
+                  <div class="preview-run-metric-item">
+                    <div class="preview-run-metric-copy">
+                      <strong>轻松跑配速</strong>
+                      <em>状态稳定，呼吸与步频都比较顺</em>
                     </div>
-                    <span class="preview-file-percent">82%</span>
+                    <span>5'24"</span>
                   </div>
-                  <div class="preview-file-item preview-file-item-progress">
-                    <span class="preview-file-icon">PDF</span>
-                    <div class="preview-file-copy">
-                      <strong>QA Notes.pdf</strong>
-                      <em>3.0 MB · Product Team</em>
-                      <span class="preview-file-progress"><span style="width:54%"></span></span>
+                  <div class="preview-run-metric-item">
+                    <div class="preview-run-metric-copy">
+                      <strong>平均心率</strong>
+                      <em>长距离阶段略高，建议明天恢复跑</em>
                     </div>
-                    <span class="preview-file-percent">54%</span>
+                    <span>148</span>
                   </div>
-                  <div class="preview-file-item preview-file-item-progress">
-                    <span class="preview-file-icon">ZIP</span>
-                    <div class="preview-file-copy">
-                      <strong>Icons Export.zip</strong>
-                      <em>28.2 MB · Final bundle</em>
-                      <span class="preview-file-progress"><span style="width:100%"></span></span>
+                  <div class="preview-run-metric-item">
+                    <div class="preview-run-metric-copy">
+                      <strong>平均步频</strong>
+                      <em>进入舒服区间，整体节奏更连贯</em>
                     </div>
-                    <span class="preview-file-percent">Done</span>
+                    <span>178</span>
                   </div>
                 </div>
+              </div>
+
+              <div class="preview-phone-nav">
+                <span>首页</span>
+                <span class="is-active">运动</span>
+                <span>我的</span>
               </div>
             </article>
 
             <article class="preview-phone-card preview-phone-card-right">
               <div class="preview-phone-status">
                 <div class="preview-right-brand">
-                  <strong>Flydrop</strong>
-                  <span>Nearby</span>
+                  <strong>我的</strong>
+                  <span>个人中心</span>
                 </div>
                 <span class="preview-toggle-pill is-on"></span>
               </div>
 
+              <div class="preview-phone-panel preview-run-profile-card">
+                <div class="preview-run-profile-top">
+                  <span class="preview-run-profile-avatar" style="--avatar-bg:${first}; --avatar-ink:${pickReadableText(first)}">余</span>
+                  <div class="preview-run-profile-copy">
+                    <strong>余燃</strong>
+                    <span>Lv.4 跑者 · 连续跑步 6 天</span>
+                  </div>
+                </div>
+
+                <div class="preview-stat-strip">
+                  <div class="preview-stat-mini">
+                    <span>累计里程</span>
+                    <strong>428 km</strong>
+                  </div>
+                  <div class="preview-stat-mini">
+                    <span>本月打卡</span>
+                    <strong>14 天</strong>
+                  </div>
+                </div>
+
+                <div class="preview-run-medal-row">
+                  <span class="preview-run-medal">5K</span>
+                  <span class="preview-run-medal">10K</span>
+                  <span class="preview-run-medal">PB</span>
+                </div>
+              </div>
+
+              <div class="preview-phone-panel preview-run-photo-card">
+                <div class="preview-run-photo"></div>
+                <div class="preview-run-photo-copy">
+                  <strong>西湖夜跑计划</strong>
+                  <span>完成 3 次夜跑可获得限定奖牌</span>
+                </div>
+              </div>
+
               <div class="preview-phone-panel">
                 <div class="preview-phone-section-head">
-                  <strong>Nearby Devices</strong>
-                  <span>3 active</span>
-                </div>
-                <div class="preview-radar">
-                  <div class="preview-radar-ring ring-1"></div>
-                  <div class="preview-radar-ring ring-2"></div>
-                  <div class="preview-radar-ring ring-3"></div>
-                  <span class="preview-radar-user user-center" style="--avatar-bg:${first}; --avatar-ink:${pickReadableText(first)}">ME</span>
-                  <span class="preview-radar-user user-1" style="--avatar-bg:${soft}; --avatar-ink:${pickReadableText(soft)}">A</span>
-                  <span class="preview-radar-user user-2" style="--avatar-bg:${accent}; --avatar-ink:${pickReadableText(accent)}">G</span>
-                  <span class="preview-radar-user user-3" style="--avatar-bg:${deepInfo}; --avatar-ink:${pickReadableText(deepInfo)}">R</span>
+                  <strong>我的装备</strong>
+                  <span>设备与鞋款</span>
                 </div>
                 <div class="preview-device-list">
                   <div class="preview-device-row">
                     <div class="preview-device-copy">
-                      <strong>Ashly Nelson</strong>
-                      <em>MacBook Pro · 2 m away</em>
+                      <strong>Apple Watch</strong>
+                      <em>最近同步 8 分钟前，心率上传正常</em>
                     </div>
-                    <span class="preview-inline-chip preview-inline-chip-soft" style="--preview-chip-bg:${soft}; --preview-chip-ink:${pickReadableText(soft)}">Trusted</span>
+                    <span class="preview-inline-chip preview-inline-chip-soft" style="--preview-chip-bg:${soft}; --preview-chip-ink:${pickReadableText(soft)}">已连接</span>
                   </div>
                   <div class="preview-device-row">
                     <div class="preview-device-copy">
-                      <strong>Gofar Badman</strong>
-                      <em>iPhone 15 · ready to receive</em>
+                      <strong>Nike Pegasus 41</strong>
+                      <em>累计 514 km，建议 80 km 后检查更换</em>
                     </div>
-                    <span class="preview-inline-chip preview-inline-chip-soft" style="--preview-chip-bg:${tag}; --preview-chip-ink:${pickReadableText(tag)}">Nearby</span>
+                    <span class="preview-inline-chip preview-inline-chip-soft" style="--preview-chip-bg:${tag}; --preview-chip-ink:${pickReadableText(tag)}">鞋况良好</span>
                   </div>
                 </div>
               </div>
 
+              <div class="preview-phone-panel">
+                <div class="preview-phone-section-head">
+                  <strong>常用入口</strong>
+                  <span>个人服务</span>
+                </div>
+                <div class="preview-run-menu-list">
+                  <div class="preview-run-menu-item"><strong>训练计划</strong><span>查看本周安排</span></div>
+                  <div class="preview-run-menu-item"><strong>奖牌与成就</strong><span>解锁 5 公里新 PB</span></div>
+                  <div class="preview-run-menu-item"><strong>订单与会员</strong><span>课程、活动与订阅管理</span></div>
+                </div>
+              </div>
+
               <div class="preview-phone-nav">
-                <span>Home</span>
-                <span class="is-active">Nearby</span>
-                <span>Profile</span>
+                <span>首页</span>
+                <span>运动</span>
+                <span class="is-active">我的</span>
               </div>
             </article>
+            </div>
+            <div class="preview-phone-pager" aria-label="当前页面提示器">
+              <button type="button" class="preview-phone-page-dot is-active" data-preview-page="0" aria-label="查看第 1 页"></button>
+              <button type="button" class="preview-phone-page-dot" data-preview-page="1" aria-label="查看第 2 页"></button>
+              <button type="button" class="preview-phone-page-dot" data-preview-page="2" aria-label="查看第 3 页"></button>
+            </div>
           </div>
         </div>
       </div>
@@ -1514,7 +1697,8 @@ function renderPreviewShowcase(palette) {
             <p>这里重点看输入框、切换器、主按钮、提示区和聊天式表单反馈是否顺畅，提前判断这组色能不能稳定落地。</p>
           </div>
 
-          <div class="preview-phone-strip">
+          <div class="preview-phone-carousel" data-preview-carousel>
+            <div class="preview-phone-strip" data-preview-strip>
             <article class="preview-phone-card">
               <div class="preview-phone-status preview-phone-status-center">
                 <span>←</span>
@@ -1582,6 +1766,12 @@ function renderPreviewShowcase(palette) {
                 <button type="button" class="preview-chat-send">Send</button>
               </div>
             </article>
+            </div>
+            <div class="preview-phone-pager" aria-label="当前页面提示器">
+              <button type="button" class="preview-phone-page-dot is-active" data-preview-page="0" aria-label="查看第 1 页"></button>
+              <button type="button" class="preview-phone-page-dot" data-preview-page="1" aria-label="查看第 2 页"></button>
+              <button type="button" class="preview-phone-page-dot" data-preview-page="2" aria-label="查看第 3 页"></button>
+            </div>
           </div>
         </div>
       </div>
@@ -1657,7 +1847,8 @@ function renderPreviewShowcase(palette) {
 }
 
 function renderBand(container, palette, prefix) {
-  container.style.gridTemplateColumns = `repeat(${palette.length}, minmax(0, 1fr))`;
+  container.style.setProperty("--step-count", String(palette.length));
+  container.style.gridTemplateColumns = `repeat(${palette.length}, minmax(var(--scale-step-min, 0px), 1fr))`;
   container.innerHTML = palette
     .map((step) => {
       const name = buildStepName(prefix, step.index);
@@ -1707,6 +1898,7 @@ function render() {
   syncAnchorStepObserver();
   syncScaleIndicatorToAnchor();
   renderPreviewShowcase(palette);
+  initPreviewMobileCarousel();
   syncHeroCardFrame();
   syncHeroReserve();
   syncHeroShadow();
@@ -1724,11 +1916,18 @@ function render() {
   if (refs.exportMetaLabel) {
     refs.exportMetaLabel.textContent = exportPayload.label;
   }
+  if (refs.exportHeroStat) {
+    refs.exportHeroStat.textContent = exportPayload.label;
+  }
   if (refs.exportFormatNote) {
     refs.exportFormatNote.textContent = exportPayload.note;
   }
+  const anchorText = `色阶 ${state.anchorIndex + 1} / ${state.count} 阶`;
   if (refs.exportMeta) {
-    refs.exportMeta.textContent = `当前参考：色阶 ${state.anchorIndex + 1} / ${state.count} 阶`;
+    refs.exportMeta.textContent = `当前参考：${anchorText}`;
+  }
+  if (refs.exportHeroAnchor) {
+    refs.exportHeroAnchor.textContent = anchorText;
   }
 }
 
@@ -1882,6 +2081,13 @@ function bindScaleBandInteractions(container) {
 }
 
 refs.modeToggle.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-mode]");
+  if (!button) return;
+  state.mode = button.dataset.mode;
+  render();
+});
+
+refs.modeToggleMobile?.addEventListener("click", (event) => {
   const button = event.target.closest("[data-mode]");
   if (!button) return;
   state.mode = button.dataset.mode;
@@ -2085,6 +2291,7 @@ window.addEventListener("resize", () => {
   syncHeroReserve();
   syncScaleIndicatorToAnchor();
   syncAnchorStepObserver();
+  schedulePreviewMobileCarouselSync();
   if (refs.message?.classList.contains("is-visible")) {
     positionGlobalMessage(refs.messageAnchor);
   }
